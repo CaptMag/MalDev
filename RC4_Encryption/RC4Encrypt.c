@@ -9,6 +9,8 @@ typedef struct
 
 } Rc4Context;
 
+
+
 void swap(unsigned char* a, unsigned char* b)
 {
 	unsigned char tmp = *a;
@@ -24,8 +26,7 @@ void rc4init(Rc4Context* context, const unsigned char* key, size_t keyL)
 
 	if (context == NULL || key == NULL)
 	{
-		printf("Context or Key not found!");
-		return ERROR_INVALID_PARAMETER;
+		goto error;
 	}
 
 	printf("[#] Setting Values to Zero...\n");
@@ -44,8 +45,14 @@ void rc4init(Rc4Context* context, const unsigned char* key, size_t keyL)
 		j = (j + context->s[i] + key[i % keyL]) % 256;
 	}
 
+
 	swap(&context->s[i], &context->s[j]);
 	printf("[+] Successfully swapped values of s[i] and s[j]\n");
+
+
+error:
+	printf("[-] Context of Key Not Found!\n");
+	return ERROR_INVALID_PARAMETER;
 }
 
 unsigned char* PRGA(Rc4Context* context, unsigned char* input, unsigned char* output, unsigned int len)
@@ -65,6 +72,11 @@ unsigned char* PRGA(Rc4Context* context, unsigned char* input, unsigned char* ou
 
 		swap(&context->s[i], &context->s[j]);
 
+		if (input == NULL || output == NULL)
+		{
+			goto error;
+		}
+
 		if (input != NULL && output != NULL)
 		{
 			*output = *input ^ s[(s[i] + s[j]) % 256];
@@ -79,6 +91,10 @@ unsigned char* PRGA(Rc4Context* context, unsigned char* input, unsigned char* ou
 	printf("[*] Resetting Values!\n");
 	context->i = i;
 	context->j = j;
+
+error:
+	printf("[-] Input And/Or Output Not Working!\n");
+	return -1;
 }
 
 
@@ -136,6 +152,9 @@ int main()
 		fprintf(stderr, "malloc failed\n");
 		return 1;
 	}
+
+
+	// print out encrypted shellcode
 	ZeroMemory(CipherText, shellcode_len);
 	PRGA(&ctx, shellcode, CipherText, shellcode_len);
 	printf("[*] CipherText (%zu bytes):\n", shellcode_len);
@@ -144,6 +163,7 @@ int main()
 		if ((i + 1) % 16 == 0) printf("\n");
 		else printf(" ");
 	}
+
 	printf("\n");
 
 
@@ -157,6 +177,9 @@ int main()
 		fprintf(stderr, "malloc failed\n");
 		return 1;
 	}
+
+
+	// print out unencrypted shellcode
 	ZeroMemory(PlainText, shellcode_len);
 	PRGA(&ctx, shellcode, CipherText, shellcode_len);
 	printf("[*] PlainText (%zu bytes):\n", shellcode_len);
@@ -165,7 +188,10 @@ int main()
 		if ((i + 1) % 16 == 0) printf("\n");
 		else printf(" ");
 	}
+
+
 	printf("\n");
+	printf("[+] Successfully Decrypted the Shellcode!\n");
 
 	//Cleanup!
 	printf("[>] Press <Enter> to Quit...");
