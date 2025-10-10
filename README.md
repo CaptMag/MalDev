@@ -15,4 +15,33 @@ The design for this repository is to manage my MalDev road-path as I learn and u
 I also wanted to say that this repository is designed for educational purposes only. Not only will you get caught immediately with this code, but it is also **illegal** to do so on systems you do not own.
 
 
+## Current Projects and Standings
+
+
+As of right now, this is a growing repository, and as such, there will be many updates for all the code here to ensure it works as intended.  
+As of writing this, these are the current programs completed and working:
+
+- Encryption
+    - [RC4](https://github.com/CaptMag/MalDev/tree/main/Encryption/RC4_Encryption)
+    - [XOR](https://github.com/CaptMag/MalDev/tree/main/Encryption/XOR_Encryption)
+
+- Native API
+    - [NT APC](https://github.com/CaptMag/MalDev/tree/main/NTAPI/NT_APC)
+    - [NT Shellcode Injection](https://github.com/CaptMag/MalDev/tree/main/NTAPI/NT_Shellcode_Injection)
+
+- Process Injection
+    - [APC Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/APC_Injection)
+    - [Shellcode Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/Shellcode_Injection)
+
+- System Calls
+    - [Direct Syscalls](https://github.com/CaptMag/MalDev/tree/main/Syscalls/Direct_Syscalls)
+    - [Indirect Syscalls](https://github.com/CaptMag/MalDev/tree/main/Syscalls/Indirect_Syscalls)
+
+
+## Errors
+
+I am not some sort of amazing programming, and that clearly reflects in my code. If there are any issues in any of my programs, feel free to make a pull request or point it out in the errors section!
+
+## Thank You
+
 With that being said, thanks for checking out my repo, and I hope you find something interesting:))))
