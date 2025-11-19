@@ -65,25 +65,26 @@ extern NTSTATUS NtWaitForSingleObject(
 extern NTSTATUS NtSetContextThread(
     _In_ HANDLE ThreadHandle,
     _In_ PCONTEXT ThreadContext
-    );
+);
 
 extern NTSTATUS NtGetContextThread(
     _In_ HANDLE ThreadHandle,
     _Inout_ PCONTEXT ThreadContext
-    );
+);
 
 extern NTSTATUS NtResumeThread(
     _In_ HANDLE ThreadHandle,
     _Out_opt_ PULONG PreviousSuspendCount
-    );
+);
 
 
 BOOL CreateSuspendedProcess
-(IN LPCSTR lpProcessName,
-    OUT DWORD* dwProcessId,
-    IN HANDLE hParent,
+(
+    IN LPCSTR ProcessName,
+    OUT DWORD* PID,
     OUT HANDLE* hProcess,
-    OUT HANDLE* hThread);
+    OUT HANDLE* hThread
+);
 
 BOOL IndirectSyscallInjection
 (IN HANDLE hProcess,

