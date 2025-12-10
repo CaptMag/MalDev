@@ -19,7 +19,7 @@ BOOL GetRemoteId
 	hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	if (hSnap == NULL)
 	{
-		PRINT_ERROR("CreateToolhelp32Snapshot");
+		printf("CreateToolhelp32Snapshot: %lu", GetLastError());
 		return FALSE;
 	}
 
@@ -42,7 +42,7 @@ int main()
 
 	DWORD PID = NULL;
 
-	GetProcID(L"notepad.exe", &PID);
+	GetRemoteId(L"notepad.exe", &PID);
 
 	return 0;
 
