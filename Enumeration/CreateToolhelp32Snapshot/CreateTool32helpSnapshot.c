@@ -6,15 +6,16 @@
 
 BOOL GetRemoteId
 (
-	LPCWSTR ProcName,
-	OUT DWORD* PID
+	IN LPCWSTR ProcName,
+	OUT DWORD* PID,
+	OUT HANDLE* hProcess
 )
 
 {
-
+	BOOL found = FALSE;
 	HANDLE hSnap = NULL;
-	PROCESSENTRY32 pe32;
-	pe32.dwSize = sizeof(PROCESSENTRY32);
+	PROCESSENTRY32W pe32;
+	pe32.dwSize = sizeof(pe32);
 
 	hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	if (hSnap == NULL)
@@ -23,17 +24,38 @@ BOOL GetRemoteId
 		return FALSE;
 	}
 
-	if (Process32First(hSnap, &pe32))
+	INFO("[0x%p] Acquired Handle to hSnap", hSnap);
+
+	if (Process32FirstW(hSnap, &pe32))
 	{
-		while (_wcsicmp(pe32.szExeFile, ProcName) != 0)
+		do
 		{
-			Process32Next(hSnap, &pe32);
-		}
+			if (_wcsicmp(pe32.szExeFile, ProcName) == 0)
+			{
+				*PID = pe32.th32ProcessID;
+
+				*hProcess = OpenProcess(
+					PROCESS_ALL_ACCESS,
+					FALSE,
+					pe32.th32ProcessID
+				);
+
+				if (*hProcess == NULL)
+				{
+					printf("OpenProcess failed: %lu\n", GetLastError());
+					CloseHandle(hSnap);
+					return FALSE;
+				}
+
+				found = TRUE;
+				break;
+			}
+
+		} while (Process32Next(hSnap, &pe32));
 	}
 
-	*PID = pe32.th32ProcessID;
-
-	return TRUE;
+	CloseHandle(hSnap);
+	return found;
 
 }
 
@@ -41,8 +63,14 @@ int main()
 {
 
 	DWORD PID = NULL;
+	HANDLE hProcess = NULL;
 
-	GetRemoteId(L"notepad.exe", &PID);
+	GetRemoteId(L"notepad.exe", &PID, &hProcess);
+	if (GetRemoteId == NULL)
+	{
+		printf("GetRemoteId Failed: %lu", GetLastError());
+		return 1;
+	}
 
 	return 0;
 
