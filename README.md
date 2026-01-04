@@ -25,18 +25,50 @@ As of writing this, these are the current programs completed and working:
     - [RC4](https://github.com/CaptMag/MalDev/tree/main/Encryption/RC4_Encryption)
     - [XOR](https://github.com/CaptMag/MalDev/tree/main/Encryption/XOR_Encryption)
 
+- Obfuscation
+    - [GetModuleHandle](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/Cusstom%20GetModuleHandle)
+    - [GetProcAddress](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/Custom%20GetProcAddress)
+    - [PPID Spoofing](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/PPID%20Spoofing)
+
 - Native API
-    - [NT APC](https://github.com/CaptMag/MalDev/tree/main/NTAPI/NT_APC)
     - [NT Shellcode Injection](https://github.com/CaptMag/MalDev/tree/main/NTAPI/NT_Shellcode_Injection)
+    - [NTDLL Unhooking](https://github.com/CaptMag/MalDev/tree/main/NTAPI/NTDLL%20Unhooking)
 
 - Process Injection
     - [APC Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/APC_Injection)
     - [Shellcode Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/Shellcode_Injection)
 
 - System Calls
+    - [APC Syscalls](https://github.com/CaptMag/MalDev/tree/main/Syscalls/APC)
     - [Direct Syscalls](https://github.com/CaptMag/MalDev/tree/main/Syscalls/Direct_Syscalls)
     - [Indirect Syscalls](https://github.com/CaptMag/MalDev/tree/main/Syscalls/Indirect_Syscalls)
 
+- Thread Hijacking
+    - [Local](https://github.com/CaptMag/MalDev/tree/main/Thread%20Hijacking/Local)
+    - [Remote](https://github.com/CaptMag/MalDev/tree/main/Thread%20Hijacking/Remote)
+
+- Mapping Injection
+    - [Local](https://github.com/CaptMag/MalDev/tree/main/Mapping%20Injection/Local)
+    - [Remote](https://github.com/CaptMag/MalDev/tree/main/Mapping%20Injection/Remote)
+
+- Evasion
+    - [Being Debugged](https://github.com/CaptMag/MalDev/tree/main/Evasion/beingdebugged)
+    - [Sandbox Detection](https://github.com/CaptMag/MalDev/tree/main/Evasion/sandbox_detection)
+   
+- Enumeration
+    - [CreateToolhelp32Snapshot](https://github.com/CaptMag/MalDev/tree/main/Enumeration/CreateToolhelp32Snapshot)
+    - [NtQuerySysInfo](https://github.com/CaptMag/MalDev/tree/main/Enumeration/NtQuerySysInfo/Normal)
+    - [OS Metadata](https://github.com/CaptMag/MalDev/tree/main/Enumeration/OS%20Metadata)
+
+- Process Injection
+    - [Shellcode Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/Shellcode_Injection) 
+    - [APC Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/APC_Injection)
+    - [Fiber Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/Fiber_Injection)
+    - [Early Bird Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/EarlyBird)
+
+- Stomping
+    - [Local](https://github.com/CaptMag/MalDev/tree/main/Stomping/Local)
+    - [Remote](https://github.com/CaptMag/MalDev/tree/main/Stomping/Remote)
 
 ## Errors
 
