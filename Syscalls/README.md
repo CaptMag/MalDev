@@ -10,3 +10,4 @@ https://www.youtube.com/watch?v=-M2_mZg_2Ew&t=1356s
 https://redops.at/en/blog/direct-syscalls-vs-indirect-syscalls  
 https://github.com/VirtualAlllocEx/Direct-Syscalls-vs-Indirect-Syscalls/tree/main  
 https://github.com/am0nsec/HellsGate  
+https://github.com/VirtualAlllocEx/DEFCON-31-Syscalls-Workshop/blob/main/04_Bonus_Chapter_1_POC/IDSC-Loader/IDSC-Loader/IDSC-Loader.c

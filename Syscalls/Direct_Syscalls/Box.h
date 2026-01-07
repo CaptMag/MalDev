@@ -125,24 +125,9 @@ typedef NTSTATUS(WINAPI* _SystemFunction033)(
     struct ustring* memoryRegion,
     struct ustring* keyPointer);
 
-struct ustring {
-    DWORD Length;
-    DWORD MaximumLength;
-    PUCHAR Buffer;
-} data, key;
 
-
-BOOL EncryptRC4(
-    _In_ CONST PBYTE pShellcode,
-    _In_ CONST SIZE_T sSizeofShellcode
-);
-
-VOID GetSSN(IN HMODULE mod, IN LPCSTR FuncName, OUT DWORD* FuncSSN);
-
-
-BOOL NtShellInjection(
+BOOL DirectShellInjection(
     _In_ CONST DWORD PID,
-    CONST PBYTE pEncryptedShellcode,
     _In_ CONST PBYTE pShellcode,
     _In_ CONST SIZE_T sSizeofShellcode
 );

