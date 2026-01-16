@@ -70,6 +70,14 @@ As of writing this, these are the current programs completed and working:
     - [Local](https://github.com/CaptMag/MalDev/tree/main/Stomping/Local)
     - [Remote](https://github.com/CaptMag/MalDev/tree/main/Stomping/Remote)
 
+- Misc
+    - [GrabPeHeaders](https://github.com/CaptMag/MalDev/tree/main/Misc/GrabPeHeaders)
+    - [SuspendedProcess](https://github.com/CaptMag/MalDev/tree/main/Misc/SuspendedProc)
+
+- Process Hollowing
+    - [WinApi](https://github.com/CaptMag/MalDev/tree/main/Process%20Hollowing/WinApi)
+    - [Syscall](https://github.com/CaptMag/MalDev/tree/main/Process%20Hollowing/Syscall)
+
 ## Errors
 
 I am not some sort of amazing programming, and that clearly reflects in my code. If there are any issues in any of my programs, feel free to make a pull request or point it out in the errors section!
