@@ -34,10 +34,6 @@ As of writing this, these are the current programs completed and working:
     - [NT Shellcode Injection](https://github.com/CaptMag/MalDev/tree/main/NTAPI/NT_Shellcode_Injection)
     - [NTDLL Unhooking](https://github.com/CaptMag/MalDev/tree/main/NTAPI/NTDLL%20Unhooking)
 
-- Process Injection
-    - [APC Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/APC_Injection)
-    - [Shellcode Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/Shellcode_Injection)
-
 - System Calls
     - [APC Syscalls](https://github.com/CaptMag/MalDev/tree/main/Syscalls/APC)
     - [Direct Syscalls](https://github.com/CaptMag/MalDev/tree/main/Syscalls/Direct_Syscalls)
@@ -65,6 +61,7 @@ As of writing this, these are the current programs completed and working:
     - [APC Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/APC_Injection)
     - [Fiber Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/Fiber_Injection)
     - [Early Bird Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/EarlyBird)
+    - [Portable Executable Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/PE_Injection)
 
 - Stomping
     - [Local](https://github.com/CaptMag/MalDev/tree/main/Stomping/Local)
@@ -77,6 +74,9 @@ As of writing this, these are the current programs completed and working:
 - Process Hollowing
     - [WinApi](https://github.com/CaptMag/MalDev/tree/main/Process%20Hollowing/WinApi)
     - [Syscall](https://github.com/CaptMag/MalDev/tree/main/Process%20Hollowing/Syscall)
+
+- ETW Bypass
+    - [Etw Byte Patching](https://github.com/CaptMag/MalDev/tree/main/EtwBypass/EtwPatch)
 
 ## Errors
 
