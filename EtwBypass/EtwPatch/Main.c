@@ -3,7 +3,13 @@
 int main()
 {
 
-	if (!PatchEtw())
+	if (!PatchEtw("EtwEventWrite"))
+	{
+		PRINT_ERROR("PatchEtw");
+		return 1;
+	}
+
+	if (!PatchEtw("EtwEventWriteFull"))
 	{
 		PRINT_ERROR("PatchEtw");
 		return 1;

