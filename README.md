@@ -77,6 +77,7 @@ As of writing this, these are the current programs completed and working:
 
 - ETW Bypass
     - [Etw Byte Patching](https://github.com/CaptMag/MalDev/tree/main/EtwBypass/EtwPatch)
+    - [NtTraceEvent SSN Patching](https://github.com/CaptMag/MalDev/tree/main/EtwBypass/NtTracePatch)
 
 ## Errors
 
