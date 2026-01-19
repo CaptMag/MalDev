@@ -79,6 +79,9 @@ As of writing this, these are the current programs completed and working:
     - [Etw Byte Patching](https://github.com/CaptMag/MalDev/tree/main/EtwBypass/EtwPatch)
     - [NtTraceEvent SSN Patching](https://github.com/CaptMag/MalDev/tree/main/EtwBypass/NtTracePatch)
 
+- AMSI Bypass
+    - [Amsi Byte Patching](https://github.com/CaptMag/MalDev/tree/main/AmsiBypass/Amsi_Byte_Patch)
+
 ## Errors
 
 I am not some sort of amazing programming, and that clearly reflects in my code. If there are any issues in any of my programs, feel free to make a pull request or point it out in the errors section!
