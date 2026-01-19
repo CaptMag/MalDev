@@ -32,7 +32,11 @@ As of writing this, these are the current programs completed and working:
 
 - Native API
     - [NT Shellcode Injection](https://github.com/CaptMag/MalDev/tree/main/NTAPI/NT_Shellcode_Injection)
-    - [NTDLL Unhooking](https://github.com/CaptMag/MalDev/tree/main/NTAPI/NTDLL%20Unhooking)
+
+- Ntdll Unhooking
+    - [Map From Disk](https://github.com/CaptMag/MalDev/tree/main/NTDLL%20Unhooking/MapFromDisk)
+    - [Read From File](https://github.com/CaptMag/MalDev/tree/main/NTDLL%20Unhooking/ReadFromFile)
+    - [Suspended Process](https://github.com/CaptMag/MalDev/tree/main/NTDLL%20Unhooking/SuspendedProc)
 
 - System Calls
     - [APC Syscalls](https://github.com/CaptMag/MalDev/tree/main/Syscalls/APC)
@@ -68,8 +72,9 @@ As of writing this, these are the current programs completed and working:
     - [Remote](https://github.com/CaptMag/MalDev/tree/main/Stomping/Remote)
 
 - Misc
-    - [GrabPeHeaders](https://github.com/CaptMag/MalDev/tree/main/Misc/GrabPeHeaders)
-    - [SuspendedProcess](https://github.com/CaptMag/MalDev/tree/main/Misc/SuspendedProc)
+    - [Grab Pe Headers](https://github.com/CaptMag/MalDev/tree/main/Misc/GrabPeHeaders)
+    - [Suspended Process](https://github.com/CaptMag/MalDev/tree/main/Misc/SuspendedProc)
+    - [Read Target File](https://github.com/CaptMag/MalDev/tree/main/Misc/ReadTargetFile)
 
 - Process Hollowing
     - [WinApi](https://github.com/CaptMag/MalDev/tree/main/Process%20Hollowing/WinApi)
