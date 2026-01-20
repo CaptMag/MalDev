@@ -29,6 +29,7 @@ As of writing this, these are the current programs completed and working:
     - [GetModuleHandle](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/Cusstom%20GetModuleHandle)
     - [GetProcAddress](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/Custom%20GetProcAddress)
     - [PPID Spoofing](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/PPID%20Spoofing)
+    - [Double Obfuscation (GetProcAddress + GetModuleHandle)](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/DoubleObfs)
 
 - Native API
     - [NT Shellcode Injection](https://github.com/CaptMag/MalDev/tree/main/NTAPI/NT_Shellcode_Injection)
