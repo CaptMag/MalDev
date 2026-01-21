@@ -28,6 +28,7 @@ As of writing this, these are the current programs completed and working:
 - Obfuscation
     - [GetModuleHandle](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/Cusstom%20GetModuleHandle)
     - [GetProcAddress](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/Custom%20GetProcAddress)
+    - [Api Hashing](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/ApiHashing)
     - [PPID Spoofing](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/PPID%20Spoofing)
     - [Double Obfuscation (GetProcAddress + GetModuleHandle)](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/DoubleObfs)
 
@@ -46,11 +47,19 @@ As of writing this, these are the current programs completed and working:
 
 - Thread Hijacking
     - [Local](https://github.com/CaptMag/MalDev/tree/main/Thread%20Hijacking/Local)
+        - [WinApi](https://github.com/CaptMag/MalDev/tree/main/Thread%20Hijacking/Local/WinAPI)
+        - [Syscalls](https://github.com/CaptMag/MalDev/tree/main/Thread%20Hijacking/Local/Indirect%20Syscall)
     - [Remote](https://github.com/CaptMag/MalDev/tree/main/Thread%20Hijacking/Remote)
+        - [WinApi](https://github.com/CaptMag/MalDev/tree/main/Thread%20Hijacking/Remote/WinAPI)
+        - [Syscalls](https://github.com/CaptMag/MalDev/tree/main/Thread%20Hijacking/Remote/Indirect%20Syscalls)
 
 - Mapping Injection
     - [Local](https://github.com/CaptMag/MalDev/tree/main/Mapping%20Injection/Local)
+        - [WinApi](https://github.com/CaptMag/MalDev/tree/main/Mapping%20Injection/Local/WinAPI)
+        - [Syscalls](https://github.com/CaptMag/MalDev/tree/main/Mapping%20Injection/Local/Indirect%20Syscall)
     - [Remote](https://github.com/CaptMag/MalDev/tree/main/Mapping%20Injection/Remote)
+        - [WinApi](https://github.com/CaptMag/MalDev/tree/main/Mapping%20Injection/Remote/WinAPI)
+        - [Syscalls](https://github.com/CaptMag/MalDev/tree/main/Mapping%20Injection/Remote/Indirect%20Syscalls)
 
 - Evasion
     - [Being Debugged](https://github.com/CaptMag/MalDev/tree/main/Evasion/beingdebugged)

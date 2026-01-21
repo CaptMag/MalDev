@@ -3,10 +3,9 @@
 // https://malwaretech.com/wiki/locating-modules-via-the-peb-x64
 // https://learn.microsoft.com/en-us/windows/win32/api/ntdef/nf-ntdef-containing_record
 
-BOOL GetModHandleWW
+PVOID GetModHandleWW
 (
-	IN wchar_t* target,
-	OUT PVOID* Ntdllbase
+	IN wchar_t* target
 )
 {
 
@@ -45,16 +44,10 @@ BOOL GetModHandleWW
 		if (_wcsicmp(ModuleDll->BaseDllName.Buffer, target) == 0)
 		{
 			OKAY("Found Address for %ls | Base Address: [0x%p]", target, ModuleDll->DllBase);
-			*Ntdllbase = ModuleDll->DllBase;
-			if (Ntdllbase == NULL)
-			{
-				PRINT_ERROR("Ntdllbase");
-				return FALSE;
-			}
-			break;
+			return ModuleDll->DllBase;
 		}
 	}
 
 
-	return TRUE;
+	return;
 }
