@@ -97,10 +97,13 @@ As of writing this, these are the current programs completed and working:
 - AMSI Bypass
     - [Amsi Byte Patching](https://github.com/CaptMag/MalDev/tree/main/AmsiBypass/Amsi_Byte_Patch)
 
+- Magma Gate
+    - [Magma Gate](https://github.com/CaptMag/MalDev/tree/main/MagmaGate)
+
 ## Errors
 
 I am not some sort of amazing programming, and that clearly reflects in my code. If there are any issues in any of my programs, feel free to make a pull request or point it out in the errors section!
 
 ## Thank You
 
-With that being said, thanks for checking out my repo, and I hope you find something interesting:))))
+With that being said, thanks for checking out my repo, and I hope you find something interesting :))))
