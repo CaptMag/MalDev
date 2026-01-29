@@ -23,7 +23,7 @@ MagmaGate --> Ties everything together and grab all the necessary information
 ## Example of NtWriteVirtualMemory
 
 <p align="center">
-    <img height="400" alt="OffensiveRust" src="syscall.jpg">
+    <img height="400" alt="OffensiveRust" src="syscall.png">
 </p>
 
 ## Credits
