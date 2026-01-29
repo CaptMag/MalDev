@@ -1,163 +1,108 @@
 #pragma once
 #include <Windows.h>
 #include <stdio.h>
+#include <intrin.h>
+#include "IS.h"
 
 #define STATUS_SUCCESS (NTSTATUS)0x00000000L
-#define OKAY(MSG, ...) printf("[+] "               MSG "\n", ##__VA_ARGS__)
-#define INFO(MSG, ...) printf("[*] "               MSG "\n", ##__VA_ARGS__)
-#define WARN(MSG, ...) fprintf(stderr, "[-] "      MSG "\n", ##__VA_ARGS__)
+#define OKAY(MSG, ...) printf("[+] "		  MSG "\n", ##__VA_ARGS__)
+#define INFO(MSG, ...) printf("[*] "          MSG "\n", ##__VA_ARGS__)
+#define WARN(MSG, ...) fprintf(stderr, "[-] " MSG "\n", ##__VA_ARGS__)
 #define CHAR(MSG, ...) printf("[>] Press <Enter> to "		MSG "\n", ##__VA_ARGS__)
+#define PRINT_ERROR(MSG, ...) fprintf(stderr, "[!] " MSG " Failed! Error: 0x%lx""\n", GetLastError())
 
+typedef struct _RTL_USER_PROCESS_PARAMETERS {
+    BYTE           Reserved1[16];
+    PVOID          Reserved2[10];
+    UNICODE_STRING ImagePathName;
+    UNICODE_STRING CommandLine;
+} RTL_USER_PROCESS_PARAMETERS, * PRTL_USER_PROCESS_PARAMETERS;
 
+typedef struct _PEB_LDR_DATA
+{
+    ULONG Length;                                // +0x00
+    UCHAR Initialized;                           // +0x04
+    PVOID SsHandle;                              // +0x08
+    LIST_ENTRY InLoadOrderModuleList;            // +0x10
+    LIST_ENTRY InMemoryOrderModuleList;          // +0x20
+    LIST_ENTRY InInitializationOrderModuleList;  // +0x30
+} PEB_LDR_DATA, * PPEB_LDR_DATA;
 
-typedef unsigned __int64 QWORD;
+typedef struct _LDR_DATA_TABLE_ENTRY
+{
+    LIST_ENTRY InLoadOrderLinks;               // +0x00
+    LIST_ENTRY InMemoryOrderLinks;             // +0x10
+    LIST_ENTRY InInitializationOrderLinks;     // +0x20
+    PVOID DllBase;                             // +0x30
+    PVOID EntryPoint;                          // +0x38
+    ULONG SizeOfImage;                         // +0x40
+    UNICODE_STRING FullDllName;                // +0x48
+    UNICODE_STRING BaseDllName;                // +0x58
+    ULONG Flags;                               // +0x68
+    USHORT LoadCount;                          // +0x6C
+    USHORT TlsIndex;                           // +0x6E
+    LIST_ENTRY HashLinks;                      // +0x70
+    ULONG TimeDateStamp;                       // +0x80
+} LDR_DATA_TABLE_ENTRY, * PLDR_DATA_TABLE_ENTRY;
 
-DWORD g_NtOpenProcessSSN;
-DWORD g_NtAllocateVirtualMemorySSN;
-DWORD g_NtWriteVirtualMemorySSN;
-DWORD g_NtProtectVirtualMemorySSN;
-DWORD g_NtCreateThreadExSSN;
-DWORD g_NtWaitForSingleObjectSSN;
-DWORD g_NtFreeVirtualMemorySSN;
-DWORD g_NtCloseSSN;
+typedef struct _PEB {
+    BYTE                          Reserved1[2];
+    BYTE                          BeingDebugged;
+    BYTE                          Reserved2[1];
+    PVOID                         Reserved3[2];
+    PPEB_LDR_DATA                 Ldr;
+    PRTL_USER_PROCESS_PARAMETERS  ProcessParameters;
+    PVOID                         Reserved4[3];
+    PVOID                         AtlThunkSListPtr;
+    PVOID                         Reserved5;
+    ULONG                         Reserved6;
+    PVOID                         Reserved7;
+    ULONG                         Reserved8;
+    ULONG                         AtlThunkSListPtr32;
+    PVOID                         Reserved9[45];
+    BYTE                          Reserved10[96];
+    BYTE                          Reserved11[128];
+    PVOID                         Reserved12[1];
+    ULONG                         SessionId;
+} PEB, * PPEB;
 
-QWORD g_NtOpenProcessSyscall;
-QWORD g_NtAllocateVirtualMemorySyscall;
-QWORD g_NtWriteVirtualMemorySyscall;
-QWORD g_NtProtectVirtualMemorySyscall;
-QWORD g_NtCreateThreadExSyscall;
-QWORD g_NtWaitForSingleObjectSyscall;
-QWORD g_NtFreeVirtualMemorySyscall;
-QWORD g_NtCloseSyscall;
+typedef struct _Syscall_Info {
+    PVOID Nt_Function;
+    DWORD SSN;
+    PVOID SyscallInstruction;
+} SYSCALL_INFO, * PSYSCALL_INFO;
 
-
-
-/*
-
-    This will be slightly different from direct syscalls
-    rather than just calling the function DIRECTLY, we will
-    use a jmp instruction to retrive the syscall that we scrapped
-
-    the code between direct and indirect syscalls will be almost identical
-    however, in the ASM file we will no longer call syscall, and will
-    instead issue a jmp instruction using the following QWORD values
-
-*/
-
-
-/*
-
-    Don't be alarmed, since we are calling these functions via ASM
-    there is no need to directly call them through WINAPI or NTAPI
-    so just ignore the red lines, as they will be called indirectly
-    skipping all the other Windows DLLs
-
-*/
-
-
-typedef struct _PS_ATTRIBUTE {
-    ULONG  Attribute;
-    SIZE_T Size;
-    union
-    {
-        ULONG Value;
-        PVOID ValuePtr;
-    } u1;
-    PSIZE_T ReturnLength;
-} PS_ATTRIBUTE, * PPS_ATTRIBUTE;
-
-typedef struct _UNICODE_STRING {
-    USHORT Length;
-    USHORT MaximumLength;
-    PWSTR  Buffer;
-} UNICODE_STRING, * PUNICODE_STRING;
-
-typedef struct _OBJECT_ATTRIBUTES {
-    ULONG           Length;
-    HANDLE          RootDirectory;
-    PUNICODE_STRING ObjectName;
-    ULONG           Attributes;
-    PVOID           SecurityDescriptor;
-    PVOID           SecurityQualityOfService;
-} OBJECT_ATTRIBUTES, * POBJECT_ATTRIBUTES;
-
-
-typedef struct _CLIENT_ID {
-    HANDLE UniqueProcess;
-    HANDLE UniqueThread;
-} CLIENT_ID, * PCLIENT_ID;
-
-typedef struct _PS_ATTRIBUTE_LIST {
-    SIZE_T       TotalLength;
-    PS_ATTRIBUTE Attributes[1];
-} PS_ATTRIBUTE_LIST, * PPS_ATTRIBUTE_LIST;
-
-
-extern NTSTATUS NtOpenProcess(
-    OUT PHANDLE ProcessHandle,
-    IN ACCESS_MASK DesiredAccess,
-    IN POBJECT_ATTRIBUTES ObjectAttributes,
-    IN PCLIENT_ID ClientId OPTIONAL
+void SetConfig(
+    DWORD SyscallNumber,
+    PVOID SyscallAddress
 );
 
-extern NTSTATUS NtAllocateVirtualMemory(
-    IN HANDLE ProcessHandle,
-    IN OUT PVOID* BaseAddress,
-    IN ULONG ZeroBits,
-    IN OUT PSIZE_T RegionSize,
-    IN ULONG AllocationType,
-    IN ULONG Protect
+typedef struct _Instructions_Info {
+    DWORD SSN;
+    PVOID SyscallInstruction;
+} INSTRUCTIONS_INFO, * PINSTRUCTIONS_INFO;
+
+extern NTSTATUS SyscallInvoker();
+
+PVOID WalkPeb();
+
+BOOL GetEAT
+(
+    IN PVOID Ntdllbase,
+    OUT PIMAGE_EXPORT_DIRECTORY* pImgDir
 );
 
-extern NTSTATUS NtWriteVirtualMemory(
-    IN HANDLE ProcessHandle,
-    IN PVOID BaseAddress,
-    IN PVOID Buffer,
-    IN SIZE_T NumberOfBytesToWrite,
-    OUT PSIZE_T NumberOfBytesWritten OPTIONAL
+DWORD GetBaseHash
+(
+    IN char* FuncName,
+    IN PVOID Ntdllbase,
+    IN PIMAGE_EXPORT_DIRECTORY pImgExport
 );
 
-extern NTSTATUS NtProtectVirtualMemory(
-    _In_      HANDLE ProcessHandle,
-    _Inout_   PVOID* BaseAddress,
-    _Inout_   PSIZE_T RegionSize,
-    _In_      ULONG NewProtect,
-    _Out_     PULONG OldProtect
-);
-
-extern NTSTATUS NtCreateThreadEx(
-    OUT PHANDLE ThreadHandle,
-    IN ACCESS_MASK DesiredAccess,
-    IN POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
-    IN HANDLE ProcessHandle,
-    IN PVOID StartRoutine,
-    IN PVOID Argument OPTIONAL,
-    IN ULONG CreateFlags,
-    IN SIZE_T ZeroBits,
-    IN SIZE_T StackSize,
-    IN SIZE_T MaximumStackSize,
-    IN PPS_ATTRIBUTE_LIST AttributeList OPTIONAL
-);
-
-extern NTSTATUS NtWaitForSingleObject(
-    _In_ HANDLE Handle,
-    _In_ BOOLEAN Alertable,
-    _In_opt_ PLARGE_INTEGER Timeout
-);
-
-extern NTSTATUS NtFreeVirtualMemory(
-    _In_      HANDLE ProcessHandle,
-    _Inout_   PVOID* BaseAddress,
-    _Inout_   PSIZE_T RegionSize,
-    _In_      ULONG FreeType
-);
-
-extern NTSTATUS NtClose(
-    IN HANDLE Handle
-);
-
-BOOL IndirectShellInjection(
-    _In_ CONST DWORD PID,
-    _In_ CONST PBYTE pShellcode,
-    _In_ CONST SIZE_T sSizeofShellcode
+BOOL MagmaGate
+(
+    IN PIMAGE_EXPORT_DIRECTORY pImgDir,
+    IN PVOID Ntdllbase,
+    IN DWORD ApiHash,
+    OUT PSYSCALL_INFO pSysInfo
 );
