@@ -1,33 +1,6 @@
 #include "local_map.h"
 #include "box.h"
 
-VOID IDSC
-(
-	IN HMODULE ntdll,
-	IN LPCSTR NtApi,
-	OUT DWORD* FuncSSN,
-	OUT PUINT_PTR FuncSyscall
-)
-{
-
-	if (!FuncSSN || !FuncSyscall)
-		return;
-
-	UINT_PTR NtFunction = (UINT_PTR)GetProcAddress(ntdll, NtApi);
-	if (!NtFunction)
-	{
-		WARN("Could Not Resolve Nt Function! Reason: %ld", GetLastError());
-		return;
-	}
-
-
-	*FuncSyscall = NtFunction + 0x12;
-	*FuncSSN = ((unsigned char*)NtFunction + 4)[0];
-
-	INFO("[SSN: 0x%p] | [Syscall: 0x%p] | %s", *FuncSSN, (PVOID)*FuncSyscall, NtApi);
-
-}
-
 
 BOOL local_map_inject
 (

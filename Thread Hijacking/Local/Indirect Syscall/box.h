@@ -2,7 +2,7 @@
 #include <Windows.h>
 #include <stdio.h>
 #include <intrin.h>
-#include "ProcH.h"
+#include "local_thread.h"
 
 #define STATUS_SUCCESS (NTSTATUS)0x00000000L
 #define OKAY(MSG, ...) printf("[+] "		  MSG "\n", ##__VA_ARGS__)
