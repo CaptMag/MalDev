@@ -9,24 +9,19 @@
 #define CHAR(MSG, ...) printf("[>] Press <Enter> to "		MSG "\n", ##__VA_ARGS__)
 #define PRINT_ERROR(MSG, ...) fprintf(stderr, "[!] " MSG "Failed! Error: 0x%lx""\n", GetLastError())
 
-typedef NTSTATUS(WINAPI* _SystemFunction033) (
-	struct ustring* data,
-	struct ustring* key);
-
-struct ustring {
-	DWORD Length;
-	DWORD MaximumLength;
-	PUCHAR Buffer;
-} data, key;
-
-BOOL Rc4Decrypt
+PVOID AesEncrypt
 (
-	IN PBYTE Shellcode,
-	IN SIZE_T SizeOfShellcode
+	IN PBYTE Buffer,
+	IN DWORD BufferSize,
+	OUT DWORD* EncryptedSize,
+	OUT PBYTE* pTag
 );
 
-BOOL Rc4Encrypt
+PVOID AesDecrypt
 (
-	IN PBYTE Shellcode,
-	IN SIZE_T SizeOfShellcode
+	IN PBYTE CipherText,
+	IN DWORD CipherSize,
+	IN PBYTE Tag,
+	IN DWORD TagSize,
+	OUT PDWORD pPlainTextSize
 );

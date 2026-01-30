@@ -6,51 +6,48 @@
 BOOL CreateSuspendedProcess
 (
 	IN LPCSTR ProcessName,
-	OUT DWORD* PID,
-	OUT HANDLE* hProcess,
-	OUT HANDLE* hThread
+	OUT PHANDLE hProcess,
+	OUT PHANDLE hThread,
+	OUT PDWORD PID
 )
-
 {
 
 	BOOL State = TRUE;
+	STARTUPINFOA StartupInfo;
+	PROCESS_INFORMATION ProcessInfo;
 
-	WCHAR lpPath[MAX_PATH * 2] = { 0 };
-	CHAR WnDr[MAX_PATH] = { 0 };
+	ZeroMemory(&StartupInfo, sizeof(StartupInfo));
+	ZeroMemory(&ProcessInfo, sizeof(ProcessInfo));
 
-	STARTUPINFO si = { 0 };
-	PROCESS_INFORMATION pi = { 0 };
+	StartupInfo.cb = sizeof(STARTUPINFO);
 
-	RtlSecureZeroMemory(&si, sizeof(STARTUPINFO));
-	RtlSecureZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
-
-	if (!GetEnvironmentVariableA("WINDIR", WnDr, MAX_PATH))
+	if (!CreateProcessA(NULL, ProcessName, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &StartupInfo, &ProcessInfo))
 	{
-		WARN("GetEnvironmentVariableA Failed! With an Error: %d", GetLastError());
-		return FALSE;
+		PRINT_ERROR("CreateProcessA");
+		State = FALSE; goto CLEANUP;
 	}
 
-
-	sprintf(lpPath, "%s\\System32\\%s", WnDr, ProcessName);
-
-
-	si.cb = sizeof(STARTUPINFO);
-
-	if (!CreateProcessA(NULL, lpPath, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &si, &pi))
+	if (!ProcessInfo.hProcess)
 	{
-		WARN("CreateProcessA Failed! With an Error: %lu", GetLastError());
-		State = FALSE;
+		WARN("Failed to Create Process");
+		State = FALSE; goto CLEANUP;
 	}
 
-	OKAY("[0x%p] Created Process: %d", pi.hProcess, pi.dwProcessId);
+	INFO("[0x%p] Thread Handle", ProcessInfo.hProcess);
+	INFO("[0x%p] Process Handle", ProcessInfo.hThread);
+	INFO("[%d] Process ID", ProcessInfo.dwProcessId);
 
-	*PID = pi.dwProcessId;
-	*hProcess = pi.hProcess;
-	*hThread = pi.hThread;
+	*PID = ProcessInfo.dwProcessId;
+	*hProcess = ProcessInfo.hProcess;
+	*hThread = ProcessInfo.hThread;
 
-	return TRUE;
+
+CLEANUP:
+
+	return State;
 
 }
+
 
 BOOL IndirectSyscallInjection
 (IN HANDLE hProcess,

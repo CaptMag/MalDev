@@ -24,6 +24,7 @@ As of writing this, these are the current programs completed and working:
 - Encryption
     - [RC4](https://github.com/CaptMag/MalDev/tree/main/Encryption/RC4_Encryption)
     - [XOR](https://github.com/CaptMag/MalDev/tree/main/Encryption/XOR_Encryption)
+    - [AES-256-GCM](https://github.com/CaptMag/MalDev/tree/main/Encryption/Aes256GCM)
 
 - Obfuscation
     - [GetModuleHandle](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/Cusstom%20GetModuleHandle)
