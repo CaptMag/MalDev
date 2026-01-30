@@ -6,10 +6,4 @@
 #define DIV (1024 * 1024)
 #define true_space (1024 * 1024 * 1024)
 
-BOOL leaf1info();
-
-BOOL checkmem();
-
-BOOL leaf4info();
-
-sysFirmware();
+BOOL sysFirmware();
