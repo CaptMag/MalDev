@@ -62,9 +62,15 @@ As of writing this, these are the current programs completed and working:
         - [WinApi](https://github.com/CaptMag/MalDev/tree/main/Mapping%20Injection/Remote/WinAPI)
         - [Syscalls](https://github.com/CaptMag/MalDev/tree/main/Mapping%20Injection/Remote/Indirect%20Syscalls)
 
-- Evasion
-    - [Being Debugged](https://github.com/CaptMag/MalDev/tree/main/Evasion/beingdebugged)
-    - [Sandbox Detection](https://github.com/CaptMag/MalDev/tree/main/Evasion/sandbox_detection)
+- Anti-Analysis
+    - [Being Debugged](https://github.com/CaptMag/MalDev/tree/main/Anti-Analysis/beingdebugged)
+    - [Query Performance](https://github.com/CaptMag/MalDev/tree/main/Anti-Analysis/QueryPerformance)
+    - [RDTSC](https://github.com/CaptMag/MalDev/tree/main/Anti-Analysis/RDTSC)
+
+- Anti-Sandbox
+    - [Check Memory](https://github.com/CaptMag/MalDev/tree/main/Anti-Sandbox/Check_Memory)
+    - [CPUID](https://github.com/CaptMag/MalDev/tree/main/Anti-Sandbox/CPUID)
+    - [SMBIOS](https://github.com/CaptMag/MalDev/tree/main/Anti-Sandbox/SMBIO)
    
 - Enumeration
     - [CreateToolhelp32Snapshot](https://github.com/CaptMag/MalDev/tree/main/Enumeration/CreateToolhelp32Snapshot)
