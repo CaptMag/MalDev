@@ -107,6 +107,9 @@ As of writing this, these are the current programs completed and working:
 - Magma Gate
     - [Magma Gate](https://github.com/CaptMag/MalDev/tree/main/MagmaGate)
 
+- Dll Injection
+    - [Basic DLL Injection](https://github.com/CaptMag/MalDev/tree/main/Dll%20Injection)  
+ 
 ## Errors
 
 I am not some sort of amazing programming, and that clearly reflects in my code. If there are any issues in any of my programs, feel free to make a pull request or point it out in the errors section!
