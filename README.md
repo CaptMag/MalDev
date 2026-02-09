@@ -108,7 +108,8 @@ As of writing this, these are the current programs completed and working:
     - [Magma Gate](https://github.com/CaptMag/MalDev/tree/main/MagmaGate)
 
 - Dll Injection
-    - [Basic DLL Injection](https://github.com/CaptMag/MalDev/tree/main/Dll%20Injection)  
+    - [Basic DLL Injection](https://github.com/CaptMag/MalDev/tree/main/Dll%20Injection/WinApi)  
+    - [Syscall Dll Injection](https://github.com/CaptMag/MalDev/tree/main/Dll%20Injection/Syscall)
  
 ## Errors
 
