@@ -111,6 +111,7 @@ As of writing this, these are the current programs completed and working:
     - [Basic DLL Injection](https://github.com/CaptMag/MalDev/tree/main/Dll%20Injection/WinApi)  
     - [Syscall Dll Injection](https://github.com/CaptMag/MalDev/tree/main/Dll%20Injection/Syscall)
     - [Dll Hijacking](https://github.com/CaptMag/MalDev/tree/main/Dll%20Injection/DllHijacking)
+    - [Dll Sideloading](https://github.com/CaptMag/MalDev/tree/main/Dll%20Injection/DllSideloading)
  
 ## Errors
 
