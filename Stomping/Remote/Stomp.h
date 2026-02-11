@@ -9,7 +9,7 @@
 #define INFO(MSG, ...) printf("[*] "          MSG "\n", ##__VA_ARGS__)
 #define WARN(MSG, ...) fprintf(stderr, "[-] " MSG "\n", ##__VA_ARGS__)
 #define CHAR(MSG, ...) printf("[>] Press <Enter> to "		MSG "\n", ##__VA_ARGS__)
-
+#define PRINT_ERROR(MSG, ...) fprintf(stderr, "[!] " MSG "Failed! Error: 0x%lx""\n", GetLastError())
 
 typedef enum _SYSTEM_INFORMATION_CLASS
 {
@@ -323,3 +323,18 @@ typedef struct _SYSTEM_PROCESS_INFORMATION
     LARGE_INTEGER OtherTransferCount;
     //    SYSTEM_THREAD_INFORMATION TH[1];
 } SYSTEM_PROCESS_INFORMATION, * PSYSTEM_PROCESS_INFORMATION;
+
+BOOL WritePayload
+(
+    IN HANDLE hProcess,
+    IN PVOID pAddress,
+    IN PBYTE pPayload,
+    IN SIZE_T sPayloadSize
+);
+
+BOOL GetRemoteProcID
+(
+    IN LPCWSTR ProcName,
+    OUT DWORD* PID,
+    OUT HANDLE* hProcess
+);

