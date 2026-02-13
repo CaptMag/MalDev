@@ -7,6 +7,7 @@
 #define INFO(MSG, ...) printf("[*] "               MSG "\n", ##__VA_ARGS__)
 #define WARN(MSG, ...) fprintf(stderr, "[-] "      MSG "\n", ##__VA_ARGS__)
 #define CHAR(MSG, ...) printf("[>] Press <Enter> to "		MSG "\n", ##__VA_ARGS__)
+#define PRINT_ERROR(MSG, ...) fprintf(stderr, "[!] " MSG " Failed! Error: 0x%lx""\n", GetLastError())
 
 
 DWORD g_NtOpenProcessSSN;
@@ -120,14 +121,16 @@ extern NTSTATUS NtClose(
     IN HANDLE Handle
 );
 
-
-typedef NTSTATUS(WINAPI* _SystemFunction033)(
-    struct ustring* memoryRegion,
-    struct ustring* keyPointer);
-
-
 BOOL DirectShellInjection(
-    _In_ CONST DWORD PID,
-    _In_ CONST PBYTE pShellcode,
-    _In_ CONST SIZE_T sSizeofShellcode
+    IN DWORD PID,
+    IN HANDLE hProcess,
+    IN PBYTE pShellcode,
+    IN SIZE_T sSizeofShellcode
+);
+
+BOOL GetRemoteProcID
+(
+    IN LPCWSTR ProcName,
+    OUT DWORD* PID,
+    OUT HANDLE* hProcess
 );

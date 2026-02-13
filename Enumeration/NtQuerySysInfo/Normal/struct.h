@@ -5,6 +5,7 @@
 #ifndef STRUCTS_H
 #define STRUCTS_H
 
+#define PRINT_ERROR(MSG, ...) fprintf(stderr, "[!] " MSG " Failed! Error: 0x%lx""\n", GetLastError())
 
 typedef struct _UNICODE_STRING {
     USHORT Length;

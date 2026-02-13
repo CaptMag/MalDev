@@ -16,7 +16,6 @@ PVOID GetModHandleWW
 	INFO("Ldr Address: [0x%p]", pLdr);
 
 	PLIST_ENTRY head = &pLdr->InLoadOrderModuleList;
-	PLIST_ENTRY entry = head->Flink;
 
 	/*
 

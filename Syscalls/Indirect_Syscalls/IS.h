@@ -70,7 +70,8 @@ typedef struct _PS_ATTRIBUTE_LIST {
 
 
 BOOL IndirectShellInjection(
-    _In_ CONST DWORD PID,
-    _In_ CONST PBYTE pShellcode,
-    _In_ CONST SIZE_T sSizeofShellcode
+    IN DWORD PID,
+    IN HANDLE hProcess,
+    IN PBYTE pShellcode,
+    IN SIZE_T sSizeofShellcode
 );

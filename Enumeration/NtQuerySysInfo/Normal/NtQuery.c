@@ -20,7 +20,7 @@ BOOL GetRemoteProcID
 
 	pNtQuerySystemInformation = (fnNtQuerySystemInformation)GetProcAddress(GetModuleHandle(L"NTDLL.DLL"), "NtQuerySystemInformation");
 	if (pNtQuerySystemInformation == NULL) {
-		printf("[!] GetProcAddress Failed With Error : %d\n", GetLastError());
+		PRINT_ERROR("GetProcAddress");
 		return FALSE;
 	}
 
@@ -29,7 +29,7 @@ BOOL GetRemoteProcID
 	SystemProcInfo = (PSYSTEM_PROCESS_INFORMATION)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (SIZE_T)uReturnLen1);
 	if (SystemProcInfo == NULL)
 	{
-		printf("[!] HeapAlloc Failed!\n");
+		PRINT_ERROR("HeapAlloc");
 		return FALSE;
 	}
 
@@ -37,7 +37,7 @@ BOOL GetRemoteProcID
 
 	STATUS = pNtQuerySystemInformation(SystemProcessInformation, SystemProcInfo, uReturnLen1, &uReturnLen2);
 	if (STATUS != 0x0) {
-		printf("[!] NtQuerySystemInformation Failed With Error : 0x%0.8X \n", STATUS);
+		PRINT_ERROR("NtQuerySystemInformation");
 		return FALSE;
 	}
 

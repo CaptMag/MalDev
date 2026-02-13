@@ -106,3 +106,10 @@ BOOL MagmaGate
     IN DWORD ApiHash,
     OUT PSYSCALL_INFO pSysInfo
 );
+
+BOOL GetRemoteProcID
+(
+    IN LPCWSTR ProcName,
+    OUT DWORD* PID,
+    OUT HANDLE* hProcess
+);

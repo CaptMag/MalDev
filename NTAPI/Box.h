@@ -2,7 +2,6 @@
 #include <Windows.h>
 #include <stdio.h>
 #include <tlhelp32.h>
-#include <wincrypt.h>
 
 
 
@@ -11,9 +10,9 @@
 #define OKAY(MSG, ...) printf("[+] "          MSG "\n", ##__VA_ARGS__)
 #define INFO(MSG, ...) printf("[*] "          MSG "\n", ##__VA_ARGS__)
 #define WARN(MSG, ...) fprintf(stderr, "[-] " MSG "\n", ##__VA_ARGS__)
+#define PRINT_ERROR(MSG, ...) fprintf(stderr, "[!] " MSG " Failed! Error: 0x%lx""\n", GetLastError())
 #endif
 
-/* If winternl.h isn't available, define CLIENT_ID and OBJECT_ATTRIBUTES minimal types */
 #ifndef NT_SUCCESS
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
 #endif
@@ -121,7 +120,15 @@ typedef NTSTATUS(WINAPI* _SystemFunction033)(
     struct ustring* keyPointer);
 
 BOOL NtShellInjection(
-    _In_ CONST DWORD PID,
-    _In_ CONST PBYTE pShellcode,
-    _In_ CONST SIZE_T sSizeofShellcode
+    IN DWORD PID,
+    IN HANDLE hProcess,
+    IN PBYTE pShellcode,
+    IN SIZE_T sSizeofShellcode
+);
+
+BOOL GetRemoteProcID
+(
+    IN LPCWSTR ProcName,
+    OUT DWORD* PID,
+    OUT HANDLE* hProcess
 );

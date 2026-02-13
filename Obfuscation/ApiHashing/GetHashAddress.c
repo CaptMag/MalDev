@@ -1,80 +1,65 @@
 #include "box.h"
 
-#define INITIAL_SEED	7	
+#define FNV_OFFSET 2166136261u
+#define FNV_PRIME  16777619u
 
-// Vx Underground API
-UINT32 HashStringJenkinsOneAtATime32BitA(_In_ PCHAR String)
+#define DOWN 32
+#define UP -32
+
+DWORD GetBaseHash
+(
+	IN char* FuncName,
+	IN PVOID Dllbase,
+	IN PIMAGE_EXPORT_DIRECTORY pImgExport
+)
 {
-	SIZE_T Index = 0;
-	UINT32 Hash = 0;
-	SIZE_T Length = lstrlenA(String);
 
-	while (Index != Length)
+	UINT_PTR base = (UINT_PTR)Dllbase;
+	UINT_PTR export = (UINT_PTR)base + pImgExport->AddressOfNames;
+
+	UINT32 seed = (UINT32)((export >> 3) ^ (export << 13));
+
+	UINT32 hash = FNV_OFFSET;
+
+	hash ^= seed;
+	hash *= FNV_PRIME;
+
+	while (*FuncName)
 	{
-		Hash += String[Index++];
-		Hash += Hash << INITIAL_SEED;
-		Hash ^= Hash >> 6;
+		hash ^= (UINT8)*FuncName++;
+		hash *= FNV_PRIME;
 	}
 
-	Hash += Hash << 3;
-	Hash ^= Hash >> 11;
-	Hash += Hash << 15;
+	return hash;
 
-	//INFO("0x%08X", Hash);
-	return Hash;
 }
-
-#define HASHA(API) (HashStringJenkinsOneAtATime32BitA((PCHAR) API))
 
 PVOID GetHashAddress
 (
-	IN PVOID BaseAddress,
-	IN DWORD ApiHashName
+	IN PIMAGE_EXPORT_DIRECTORY pImgDir,
+	IN PVOID Ntdllbase,
+	IN DWORD ApiHash
 )
 
 {
 
-	PIMAGE_DOS_HEADER pImgDos = (PIMAGE_DOS_HEADER)BaseAddress;
-	if (pImgDos->e_magic != IMAGE_DOS_SIGNATURE)
-	{
-		PRINT_ERROR("pImgDos");
-		return NULL;
-	}
+	PDWORD Address = (PDWORD)((LPBYTE)Ntdllbase + pImgDir->AddressOfFunctions);
+	PDWORD Name = (PDWORD)((LPBYTE)Ntdllbase + pImgDir->AddressOfNames);
+	PWORD Ordinal = (PWORD)((LPBYTE)Ntdllbase + pImgDir->AddressOfNameOrdinals);
 
-	PIMAGE_NT_HEADERS64 pImgNt = (PIMAGE_NT_HEADERS)((DWORD_PTR)BaseAddress + pImgDos->e_lfanew);
-	if (pImgNt->Signature != IMAGE_NT_SIGNATURE)
-	{
-		PRINT_ERROR("pImgNt");
-		return NULL;
-	}
-
-	PIMAGE_OPTIONAL_HEADER pImgOpt = (PIMAGE_OPTIONAL_HEADER)&pImgNt->OptionalHeader;
-
-	PIMAGE_DATA_DIRECTORY pImgDataDir64 = &pImgOpt->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
-
-	PIMAGE_EXPORT_DIRECTORY pImgExport = (PIMAGE_EXPORT_DIRECTORY)((LPBYTE)BaseAddress + pImgNt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
-
-	PDWORD Address = (PDWORD)((LPBYTE)BaseAddress + pImgExport->AddressOfFunctions);
-	PDWORD Name = (PDWORD)((LPBYTE)BaseAddress + pImgExport->AddressOfNames);
-	PWORD Ordinal = (PWORD)((LPBYTE)BaseAddress + pImgExport->AddressOfNameOrdinals);
-
-	for (DWORD i = 0; i < pImgExport->NumberOfNames; i++)
+	for (DWORD i = 0; i < pImgDir->NumberOfNames; i++)
 	{
 
 
-		CHAR* FuncName = (CHAR*)BaseAddress + Name[i];
+		CHAR* FuncName = (CHAR*)Ntdllbase + Name[i];
 
-		if (ApiHashName == HASHA(FuncName))
-		{
-			WORD ord = Ordinal[i];
-			PVOID FuncAddr = (LPBYTE)BaseAddress + Address[ord];
-
-			INFO("ApiHashName: %ld | FuncAddr: 0x%p", ApiHashName, FuncAddr);
-			return FuncAddr;
-		}
-
+		if (ApiHash != GetBaseHash(FuncName, Ntdllbase, pImgDir))
+			continue;
+		WORD ord = Ordinal[i];
+		PVOID FuncAddr = (LPBYTE)Ntdllbase + Address[ord];
+		return FuncAddr;
 	}
 
-	return;
+	return NULL;
 
 }

