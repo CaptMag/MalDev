@@ -32,6 +32,7 @@ As of writing this, these are the current programs completed and working:
     - [Api Hashing](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/ApiHashing)
     - [PPID Spoofing](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/PPID%20Spoofing)
     - [Double Obfuscation (GetProcAddress + GetModuleHandle)](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/DoubleObfs)
+    - [Memcpy + Strcpy + Strcmp](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/Mem_StrCpy)
 
 - Native API
     - [NT Shellcode Injection](https://github.com/CaptMag/MalDev/tree/main/NTAPI/NT_Shellcode_Injection)
@@ -92,6 +93,8 @@ As of writing this, these are the current programs completed and working:
     - [Grab Pe Headers](https://github.com/CaptMag/MalDev/tree/main/Misc/GrabPeHeaders)
     - [Suspended Process](https://github.com/CaptMag/MalDev/tree/main/Misc/SuspendedProc)
     - [Read Target File](https://github.com/CaptMag/MalDev/tree/main/Misc/ReadTargetFile)
+    - [Fix IAT](https://github.com/CaptMag/MalDev/tree/main/Misc/FixIAT)
+    - [Fix Reloc Table](https://github.com/CaptMag/MalDev/tree/main/Misc/FixRelocTable)
 
 - Process Hollowing
     - [WinApi](https://github.com/CaptMag/MalDev/tree/main/Process%20Hollowing/WinApi)
