@@ -26,6 +26,11 @@ As of writing this, these are the current programs completed and working:
     - [XOR](https://github.com/CaptMag/MalDev/tree/main/Encryption/XOR_Encryption)
     - [AES-256-GCM](https://github.com/CaptMag/MalDev/tree/main/Encryption/Aes256GCM)
 
+- Hashing
+    - [DJB2](https://github.com/CaptMag/MalDev/tree/main/Hashing/djb2)
+    - [SDBM](https://github.com/CaptMag/MalDev/tree/main/Hashing/sdbm)
+        - [SDBMROL16](https://github.com/CaptMag/MalDev/tree/main/Hashing/sdbm/sdbmrol16)
+
 - Obfuscation
     - [GetModuleHandle](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/Cusstom%20GetModuleHandle)
     - [GetProcAddress](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/Custom%20GetProcAddress)
