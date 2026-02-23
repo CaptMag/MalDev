@@ -1,62 +1,66 @@
 #include "box.h"
 
-#define FNV_OFFSET 2166136261u
-#define FNV_PRIME  16777619u
-
-#define DOWN 32
-#define UP -32
-
-DWORD GetBaseHash
+DWORD sdbmrol16
 (
-	IN char* FuncName,
-	IN PVOID Dllbase,
-	IN PIMAGE_EXPORT_DIRECTORY pImgExport
+	IN PCHAR String
 )
 {
 
-	UINT_PTR base = (UINT_PTR)Dllbase;
-	UINT_PTR export = (UINT_PTR)base + pImgExport->AddressOfNames;
+	UINT hash = 0;
+	UINT StringLen = strlen(String);
 
-	UINT32 seed = (UINT32)((export >> 3) ^ (export << 13));
-
-	UINT32 hash = FNV_OFFSET;
-
-	hash ^= seed;
-	hash *= FNV_PRIME;
-
-	while (*FuncName)
+	for (UINT i = 0; i < StringLen; i++)
 	{
-		hash ^= (UINT8)*FuncName++;
-		hash *= FNV_PRIME;
+		hash = (hash << 16) | (hash >> (32 - 16)); // move left by 16
+		hash = (toupper(String[i])) + (hash << 6) + (hash << 16) - hash; // sdbm
+		hash = hash ^ i; // xor
 	}
 
+	INFO("string: %s | hash: %u", String, hash);
 	return hash;
 
 }
 
 PVOID GetHashAddress
 (
-	IN PIMAGE_EXPORT_DIRECTORY pImgDir,
-	IN PVOID Ntdllbase,
+	IN PVOID BaseAddress,
 	IN DWORD ApiHash
 )
 
 {
 
-	PDWORD Address = (PDWORD)((LPBYTE)Ntdllbase + pImgDir->AddressOfFunctions);
-	PDWORD Name = (PDWORD)((LPBYTE)Ntdllbase + pImgDir->AddressOfNames);
-	PWORD Ordinal = (PWORD)((LPBYTE)Ntdllbase + pImgDir->AddressOfNameOrdinals);
+	PIMAGE_DOS_HEADER pImgDos = (PIMAGE_DOS_HEADER)BaseAddress;
+	if (pImgDos->e_magic != IMAGE_DOS_SIGNATURE)
+	{
+		PRINT_ERROR("pImgDos");
+		return NULL;
+	}
 
-	for (DWORD i = 0; i < pImgDir->NumberOfNames; i++)
+	PIMAGE_NT_HEADERS pImgNt = (PIMAGE_NT_HEADERS)((LPBYTE)BaseAddress + pImgDos->e_lfanew);
+	if (pImgNt->Signature != IMAGE_NT_SIGNATURE)
+	{
+		PRINT_ERROR("pImgNt");
+		return NULL;
+	}
+
+	PIMAGE_OPTIONAL_HEADER pImgOpt = (PIMAGE_OPTIONAL_HEADER)&pImgNt->OptionalHeader;
+
+	PIMAGE_EXPORT_DIRECTORY pImgExport = (PIMAGE_EXPORT_DIRECTORY)((LPBYTE)BaseAddress + pImgNt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
+
+	PDWORD Address = (PDWORD)((LPBYTE)BaseAddress + pImgExport->AddressOfFunctions);
+	PDWORD Name = (PDWORD)((LPBYTE)BaseAddress + pImgExport->AddressOfNames);
+	PWORD Ordinal = (PWORD)((LPBYTE)BaseAddress + pImgExport->AddressOfNameOrdinals);
+
+	for (DWORD i = 0; i < pImgExport->NumberOfNames; i++)
 	{
 
 
-		CHAR* FuncName = (CHAR*)Ntdllbase + Name[i];
+		CHAR* FuncName = (CHAR*)BaseAddress + Name[i];
 
-		if (ApiHash != GetBaseHash(FuncName, Ntdllbase, pImgDir))
+		if (ApiHash != sdbmrol16(FuncName))
 			continue;
 		WORD ord = Ordinal[i];
-		PVOID FuncAddr = (LPBYTE)Ntdllbase + Address[ord];
+		PVOID FuncAddr = (LPBYTE)BaseAddress + Address[ord];
 		return FuncAddr;
 	}
 

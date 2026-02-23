@@ -11,7 +11,8 @@ BOOL GetRemoteProcID
 {
 
 	fnNtQuerySystemInformation		pNtQuerySystemInformation = NULL;
-	ULONG							uReturnLen1 = 0, uReturnLen2 = 0;
+	ULONG							uReturnLen1 = 0, 
+									uReturnLen2 = 0;
 	PSYSTEM_PROCESS_INFORMATION		SystemProcInfo = NULL;
 	PVOID							pValueToFree = NULL;
 	NTSTATUS						STATUS = 0;
@@ -71,10 +72,10 @@ BOOL InjectDll
 )
 {
 
-	DWORD TID;
-	PVOID rBuffer;
-	HANDLE hThread;
-	SIZE_T BytesWritten;
+	DWORD	TID				= 0;
+	PVOID	rBuffer			= NULL;
+	HANDLE	hThread			= NULL;
+	SIZE_T	BytesWritten	= 0;
 
 	SIZE_T dllSize = strlen(dllPath) + 1;
 

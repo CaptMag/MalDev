@@ -92,11 +92,9 @@ BOOL GetEAT
     OUT PIMAGE_EXPORT_DIRECTORY* pImgDir
 );
 
-DWORD GetBaseHash
+DWORD sdbmrol16
 (
-    IN char* FuncName,
-    IN PVOID Ntdllbase,
-    IN PIMAGE_EXPORT_DIRECTORY pImgExport
+    IN PCHAR String
 );
 
 BOOL MagmaGate

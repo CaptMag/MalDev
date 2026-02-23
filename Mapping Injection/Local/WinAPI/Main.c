@@ -35,10 +35,10 @@ int main()
 0x63,0x2e,0x65,0x78,0x65,0x00
 	};
 
-	DWORD PID = NULL;
-	HANDLE hProcess = NULL, hThread = NULL;
-	PVOID  pAddress = NULL;
-	size_t shellsize = sizeof(Shellcode);
+	DWORD	PID			= 0;
+	HANDLE	hThread		= NULL;
+	PVOID	pAddress	= NULL;
+	size_t	shellsize	= sizeof(Shellcode);
 
 	INFO("Running Local Mapping Injection...");
 
@@ -52,12 +52,6 @@ int main()
 
 	CHAR("Cleanup");
 	getchar();
-
-	if (hProcess)
-		CloseHandle(hProcess);
-	if (hThread)
-		CloseHandle(hThread);
-
 
 	CHAR("Quit...");
 	getchar();

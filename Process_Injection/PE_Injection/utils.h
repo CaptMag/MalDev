@@ -22,8 +22,8 @@ struct TypeOffset
 BOOL GetRemoteProcID
 (
 	IN LPCWSTR ProcName,
-	OUT DWORD* PID,
-	OUT HANDLE* hProcess
+	OUT PDWORD PID,
+	OUT PHANDLE hProcess
 );
 
 BOOL GrabPeHeader

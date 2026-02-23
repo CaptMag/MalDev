@@ -6,7 +6,7 @@ BOOL PatchNtTrace()
 {
 
 	DWORD dwOldProt = 0;
-	PBYTE NtTrace = NULL;
+	PBYTE NtTrace   = NULL;
 
 	HMODULE ntdll = GetModuleHandleA("ntdll.dll");
 	if (ntdll == NULL)

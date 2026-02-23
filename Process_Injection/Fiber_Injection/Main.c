@@ -33,7 +33,11 @@ int main()
 
 	size_t sizeofshell = sizeof(Shellcode);
 
-	FiberInject(Shellcode, sizeofshell);
+	if (!FiberInject(Shellcode, sizeofshell))
+	{
+		PRINT_ERROR("FiberInject");
+		return 1;
+	}
 
 	CHAR("Quit...");
 	getchar();

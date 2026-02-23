@@ -5,8 +5,8 @@
 int main()
 {
 
-	DWORD PID = NULL;
-	HANDLE hProcess = NULL;
+	DWORD	PID			= 0;
+	HANDLE	hProcess	= NULL;
 
 	if (!GetRemoteProcID(L"RuntimeBroker.exe", &PID, &hProcess))
 	{

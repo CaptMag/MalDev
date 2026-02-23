@@ -11,7 +11,8 @@ BOOL GetRemoteProcID
 {
 
 	fnNtQuerySystemInformation		pNtQuerySystemInformation = NULL;
-	ULONG							uReturnLen1 = 0, uReturnLen2 = 0;
+	ULONG							uReturnLen1 = 0, 
+									uReturnLen2 = 0;
 	PSYSTEM_PROCESS_INFORMATION		SystemProcInfo = NULL;
 	PVOID							pValueToFree = NULL;
 	NTSTATUS						STATUS = 0;
@@ -71,13 +72,13 @@ BOOL NtShellInjection(
 )
 
 {
-	
+
+	BOOL             State = TRUE;
 	NTSTATUS		STATUS = NULL;
 	HANDLE		  hProcess = NULL;
 	HANDLE		   hThread = NULL;
 	PVOID		   rBuffer = NULL;
-	DWORD			   TID = NULL;
-	BOOL             State = TRUE;
+	DWORD			   TID = 0;
 	DWORD       OldProtection = 0;
 	SIZE_T       BytesWritten = 0;
 	SIZE_T origSize = sSizeofShellcode;

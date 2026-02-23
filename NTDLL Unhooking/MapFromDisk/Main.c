@@ -28,10 +28,6 @@ int main()
 
 	OKAY("Success");
 
-	CheckState(HookedNtdllTxt, UnhookedNtdllTxt, NtdllTxtSize);
-
-	OKAY("Completed State Check!");
-
 	CHAR("Quit");
 	getchar();
 

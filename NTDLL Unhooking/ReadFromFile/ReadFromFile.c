@@ -7,11 +7,11 @@ BOOL ReadTargetFile
 
 {
 
-	HANDLE hFile = NULL;
-	BOOL State = TRUE;
-	DWORD NumberOfBytesToRead = NULL;
-	LPVOID lppBuffer = NULL;
-	NTSTATUS status = NULL;
+	HANDLE		hFile				= NULL;
+	BOOL		State				= TRUE;
+	DWORD		NumberOfBytesToRead = 0;
+	LPVOID		lppBuffer			= NULL;
+	NTSTATUS	status				= NULL;
 	FILE_STANDARD_INFORMATION fsi;
 	IO_STATUS_BLOCK iosb = { 0 };
 

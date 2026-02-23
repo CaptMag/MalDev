@@ -44,11 +44,11 @@ typedef struct _PS_ATTRIBUTE_LIST
 
 BOOL LocalThreadHijack
 (
-    IN HANDLE hProcess,
-    IN HANDLE hThread,
+    IN  HANDLE  hProcess,
+    OUT HANDLE* hThread,
     OUT PVOID* pAddress,
-    IN PBYTE pShellcode,
-    IN SIZE_T SizeofShellcode
+    IN  PBYTE   pShellcode,
+    IN  SIZE_T  SizeofShellcode
 );
 
 BOOL HijackThread

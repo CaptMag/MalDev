@@ -16,10 +16,10 @@ BOOL InjectThread
 
 {
 
-	BOOL State = TRUE, status = TRUE;
-	SIZE_T sBytesWritten = NULL;
-	PVOID rBuffer = NULL;
-	DWORD dwOldProt = NULL;
+	BOOL	State			= TRUE;
+	SIZE_T	sBytesWritten	= 0;
+	PVOID	rBuffer			= NULL;
+	DWORD	dwOldProt		= 0;
 
 	if (!sShellcode || !sSizeofShellcode)
 	{
@@ -138,6 +138,15 @@ BOOL HijackThread
 	INFO("[0x%p] thread finished execution! beginning cleanup...", hThread);
 
 CLEANUP:
+
+	if (pRemoteAddress)
+		VirtualFree(pRemoteAddress, 0, MEM_RELEASE);
+
+	if (hThread)
+	{
+		INFO("[0x%p] Closing hThread...", hThread);
+		CloseHandle(hThread);
+	}
 
 	return State;
 }

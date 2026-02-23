@@ -7,22 +7,11 @@ BOOL FiberInject
 )
 {
 
-	PVOID MainFiber = NULL, rBuffer = NULL, FiberShell = NULL;
-	HANDLE hProcess = NULL;
-	DWORD dwOldProt;
-
-
-	/*
-	
-		OpenProcess ---> Target Function
-		ConvertThreadToFiber --> Self Explanatory
-		VirtualAllocEx ---> Target Function (RW)
-		WriteProcessMemory ---> Target Function
-		CreateFiberEx (Fiber Version of CreateThread)
-		VirtualProtectEx ---> [RW --> RWX]
-		SwitchtoFiber ---> FiberShell
-
-	*/
+	PVOID	MainFiber	= NULL,
+			rBuffer		= NULL, 
+			FiberShell	= NULL;
+	HANDLE	hProcess	= NULL;
+	DWORD	dwOldProt	= 0;
 
 	MainFiber = ConvertThreadToFiber(NULL); // Since fibers are created manually we need to make this NULL
 

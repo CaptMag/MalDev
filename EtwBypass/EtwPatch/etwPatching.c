@@ -8,9 +8,9 @@ BOOL PatchEtw
 )
 {
 
-	DWORD dwOldProt = 0;
-	PBYTE pEtwFunc = NULL;
-	NTSTATUS status = NULL;
+	DWORD	dwOldProt	= 0;
+	PBYTE	pEtwFunc	= NULL;
+	NTSTATUS status		= NULL;
 
 	BYTE patch[] = {
 		0x31, 0xC0, // xor eax, eax

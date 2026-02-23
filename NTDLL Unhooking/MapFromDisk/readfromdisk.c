@@ -9,13 +9,15 @@ BOOL ReadNtdll
 
 {
 
-	BOOL State = TRUE;
-	HANDLE hFile = NULL, hSection = NULL;
-	DWORD FileSize = NULL, dwNumofBytesRead = NULL;
-	PVOID BaseAddress = NULL;
-	SIZE_T ViewSize = NULL;
-	NTSTATUS status = NULL;
-	IO_STATUS_BLOCK ISB = { 0 };
+	BOOL		State				= TRUE;
+	HANDLE		hFile				= NULL, 
+				hSection			= NULL;
+	DWORD		FileSize			= 0, 
+				dwNumofBytesRead	= 0;
+	PVOID		BaseAddress			= NULL;
+	SIZE_T		ViewSize			= 0;
+	NTSTATUS	status				= NULL;
+	IO_STATUS_BLOCK ISB				= { 0 };
 
 	HMODULE NtdllHandle = GetModuleHandleW(L"ntdll.dll");
 	if (NtdllHandle == NULL)
@@ -47,7 +49,6 @@ BOOL ReadNtdll
 	NtCreateFile g_NtCreateFile = (NtCreateFile)GetProcAddress(NtdllHandle, "NtCreateFile");
 	NtCreateSection g_NtCreateSection = (NtCreateSection)GetProcAddress(NtdllHandle, "NtCreateSection");
 	NtMapViewOfSection g_NtMapViewOfSection = (NtMapViewOfSection)GetProcAddress(NtdllHandle, "NtMapViewOfSection");
-	NtUnmapViewOfSection g_NtUnmapViewOfSection = (NtUnmapViewOfSection)GetProcAddress(NtdllHandle, "NtUnmapViewOfSection");
 
 	status = g_NtCreateFile(&hFile, FILE_GENERIC_READ, &OA, &ISB, NULL, 0, FILE_SHARE_READ, FILE_OPEN, FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0);
 	if (!NT_SUCCESS(status))
@@ -86,8 +87,6 @@ CLEANUP:
 
 	if (hSection)
 		CloseHandle(hSection);
-
-	//g_NtUnmapViewOfSection(NtCurrentProcess(), BaseAddress);
 
 	return State;
 
@@ -162,44 +161,6 @@ BOOL CheckHeaders
 	*pHookedNtdllTxt = HookedNtdllTxt;
 	*pUnhookedNtdllTxt = UnhookedNtdllTxt;
 	*pNtdllTxtSize = NtdllTxtSize;
-
-	return TRUE;
-
-}
-
-BOOL CheckState
-(
-	IN PVOID pHookedNtdllTxt,
-	IN PVOID pUnhookedNtdllTxt,
-	IN SIZE_T pNtdllTxtSize
-)
-
-{
-
-	DWORD dwOldProt = NULL;
-
-	if (!pHookedNtdllTxt || !pUnhookedNtdllTxt || !pNtdllTxtSize)
-		return FALSE;
-
-	if (!VirtualProtect(pHookedNtdllTxt, pNtdllTxtSize, PAGE_EXECUTE_WRITECOPY, &dwOldProt))
-	{
-		PRINT_ERROR("VirtualProtect [1]");
-		return FALSE;
-	}
-
-	INFO("[0x%p] Hooked VirtualProtect", pHookedNtdllTxt);
-
-	memcpy(pHookedNtdllTxt, pUnhookedNtdllTxt, pNtdllTxtSize);
-
-	if (!VirtualProtect(pHookedNtdllTxt, pNtdllTxtSize, dwOldProt, &dwOldProt))
-	{
-		PRINT_ERROR("VirtualProtect [2]");
-		return FALSE;
-	}
-
-	INFO("[0x%p] Unhooked VirtualProtect", pHookedNtdllTxt);
-
-	OKAY("Done!");
 
 	return TRUE;
 

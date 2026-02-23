@@ -159,10 +159,3 @@ BOOL CheckHeaders
     OUT PVOID* pUnhookedNtdllTxt,
     OUT SIZE_T* pNtdllTxtSize
 );
-
-BOOL CheckState
-(
-    IN PVOID pHookedNtdllTxt,
-    IN PVOID pUnhookedNtdllTxt,
-    IN SIZE_T pNtdllTxtSize
-);

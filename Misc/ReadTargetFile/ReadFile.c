@@ -1,13 +1,4 @@
-#include <Windows.h>
-#include <stdio.h>
-#include <winternl.h>
-
-#define STATUS_SUCCESS (NTSTATUS)0x00000000L
-#define OKAY(MSG, ...) printf("[+] "		  MSG "\n", ##__VA_ARGS__)
-#define INFO(MSG, ...) printf("[*] "          MSG "\n", ##__VA_ARGS__)
-#define WARN(MSG, ...) fprintf(stderr, "[-] " MSG "\n", ##__VA_ARGS__)
-#define CHAR(MSG, ...) printf("[>] Press <Enter> to "		MSG "\n", ##__VA_ARGS__)
-#define PRINT_ERROR(MSG, ...) fprintf(stderr, "[!] " MSG " Failed! Error: 0x%lx""\n", GetLastError())
+#include "box.h"
 
 BOOL ReadTargetFile
 (
@@ -18,11 +9,11 @@ BOOL ReadTargetFile
 
 {
 
-	HANDLE hFile = NULL;
-	BOOL State = TRUE;
-	LPDWORD lpNumberOfBytesRead = NULL;
-	DWORD NumberOfBytesToRead = NULL;
-	LPVOID lppBuffer = NULL;
+	HANDLE	hFile				= NULL;
+	BOOL	State				= TRUE;
+	DWORD	lpNumberOfBytesRead = 0;
+	DWORD	NumberOfBytesToRead = 0;
+	LPVOID	lppBuffer			= NULL;
 
 	if (!PeName || !lpBuffer || !nNumberOfBytesToRead)
 		return FALSE;
@@ -54,7 +45,7 @@ BOOL ReadTargetFile
 	INFO("[%ld] Allocated Bytes to Buffer", NumberOfBytesToRead);
 
 
-	if (!ReadFile(hFile, lppBuffer, NumberOfBytesToRead, lpNumberOfBytesRead, NULL)) // lpNumberOfBytesRead can only be NULL if lpOverlapped exists
+	if (!ReadFile(hFile, lppBuffer, NumberOfBytesToRead, &lpNumberOfBytesRead, NULL))
 	{
 		PRINT_ERROR("ReadFile");
 		State = FALSE; goto CLEANUP;

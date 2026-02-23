@@ -35,12 +35,12 @@ int main()
 0x63,0x2e,0x65,0x78,0x65,0x00
 	};
 
-	HANDLE hProcess = NULL;
-	HANDLE hThread = NULL;
-	DWORD dwProcessId = NULL;
-	DWORD dwThreadId = NULL;
-	SIZE_T shellsize = sizeof(Shellcode);
-	PVOID pAddress = NULL;
+	SIZE_T	shellsize = sizeof(Shellcode);
+	HANDLE	hProcess	= NULL;
+	HANDLE	hThread		= NULL;
+	PVOID	pAddress	= NULL;
+	DWORD	dwProcessId = 0;
+	DWORD	dwThreadId	= 0;
 
 
 	INFO("Creating Suspended process of: %s...", TARGET);
@@ -80,12 +80,6 @@ int main()
 	{
 		INFO("[0x%p] Closing hProcess...", hProcess);
 		CloseHandle(hProcess);
-	}
-
-	if (hThread)
-	{
-		INFO("[0x%p] Closing hThread...", hThread);
-		CloseHandle(hThread);
 	}
 
 	CHAR("Quit...");

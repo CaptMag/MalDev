@@ -5,13 +5,19 @@
 int main()
 {
 
-	HANDLE hProcess, hThread = NULL;
-	DWORD PID, NumOfBytesToRead, Delta = NULL;
-	PIMAGE_NT_HEADERS pImgNt = NULL;
-	PIMAGE_SECTION_HEADER pImgSecHeader = NULL;
-	PIMAGE_DATA_DIRECTORY pImgDataDir = NULL;
+	HANDLE					hProcess			= NULL, 
+							hThread				= NULL;
+	DWORD					PID					= 0, 
+							NumOfBytesToRead	= 0, 
+							Delta				= NULL;
+	PIMAGE_NT_HEADERS		pImgNt				= NULL;
+	PIMAGE_SECTION_HEADER	pImgSecHeader		= NULL;
+	PIMAGE_DATA_DIRECTORY	pImgDataDir			= NULL;
 
-	LPVOID lpBuffer, rBuffer, peBaseAddress = NULL, lpFile = NULL;
+	LPVOID	lpBuffer		= NULL, 
+			rBuffer			= NULL, 
+			peBaseAddress	= NULL, 
+			lpFile			= NULL;
 
 
 	if (!CreateSuspendedProcess(TARGET_PROCESS, &hProcess, &hThread))

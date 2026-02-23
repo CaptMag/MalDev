@@ -1,63 +1,5 @@
 #include "box.h"
 
-DWORD GetBaseHash
-(
-	IN char* FuncName,
-	IN PVOID Dllbase,
-	IN PIMAGE_EXPORT_DIRECTORY pImgExport
-)
-{
-
-	UINT_PTR base = (UINT_PTR)Dllbase;
-	UINT_PTR export = (UINT_PTR)base + pImgExport->AddressOfNames;
-
-	UINT32 seed = (UINT32)((export >> 3) ^ (export << 13));
-
-	UINT32 hash = FNV_OFFSET;
-
-	hash ^= seed;
-	hash *= FNV_PRIME;
-
-	while (*FuncName)
-	{
-		hash ^= (UINT8)*FuncName++;
-		hash *= FNV_PRIME;
-	}
-
-	return hash;
-
-}
-
-PVOID GetHashAddress
-(
-	IN PIMAGE_EXPORT_DIRECTORY pImgDir,
-	IN PVOID Ntdllbase,
-	IN DWORD ApiHash
-)
-
-{
-
-	PDWORD Address = (PDWORD)((LPBYTE)Ntdllbase + pImgDir->AddressOfFunctions);
-	PDWORD Name = (PDWORD)((LPBYTE)Ntdllbase + pImgDir->AddressOfNames);
-	PWORD Ordinal = (PWORD)((LPBYTE)Ntdllbase + pImgDir->AddressOfNameOrdinals);
-
-	for (DWORD i = 0; i < pImgDir->NumberOfNames; i++)
-	{
-
-
-		CHAR* FuncName = (CHAR*)Ntdllbase + Name[i];
-
-		if (ApiHash != GetBaseHash(FuncName, Ntdllbase, pImgDir))
-			continue;
-		WORD ord = Ordinal[i];
-		PVOID FuncAddr = (LPBYTE)Ntdllbase + Address[ord];
-		return FuncAddr;
-	}
-
-	return NULL;
-
-}
-
 PVOID GetModHandleWW
 (
 	IN wchar_t* target
@@ -66,9 +8,6 @@ PVOID GetModHandleWW
 
 	PPEB pPeb = (PPEB)__readgsqword(0x60);
 	PPEB_LDR_DATA pLdr = (PPEB_LDR_DATA)pPeb->Ldr;
-
-	INFO("PEB Address: [0x%p]", pPeb);
-	INFO("Ldr Address: [0x%p]", pLdr);
 
 	PLIST_ENTRY head = &pLdr->InLoadOrderModuleList;
 
@@ -84,131 +23,145 @@ PVOID GetModHandleWW
 
 		if (_wcsicmp(ModuleDll->BaseDllName.Buffer, target) == 0)
 		{
-			OKAY("Found Address for %ls | Base Address: [0x%p]", target, ModuleDll->DllBase);
 			return ModuleDll->DllBase;
 		}
 	}
 
 
-	return NULL;
+	return;
 }
 
-BOOL GrabPeHeader
+DWORD sdbmrol16
 (
-	OUT PIMAGE_NT_HEADERS* pImgNt,
-	OUT PIMAGE_SECTION_HEADER* pImgSecHeader,
-	OUT PIMAGE_DATA_DIRECTORY* pImgDataDir,
-	OUT PIMAGE_EXPORT_DIRECTORY* ppImgExpDir,
-	IN HMODULE lpFile
+	IN PCHAR String
+)
+{
+
+	UINT hash = 0;
+	UINT StringLen = strlen(String);
+
+	for (UINT i = 0; i < StringLen; i++)
+	{
+		hash = (hash << 16) | (hash >> (32 - 16)); // move left by 16
+		hash = (toupper(String[i])) + (hash << 6) + (hash << 16) - hash; // sdbm
+		hash = hash ^ i; // xor
+	}
+
+	return hash;
+
+}
+
+PVOID GetHashAddress
+(
+	IN PVOID BaseAddress,
+	IN DWORD ApiHash
 )
 
 {
 
-	PBYTE pBase = (PBYTE)lpFile;
-
-	PIMAGE_DOS_HEADER pImgDos = (PIMAGE_DOS_HEADER)pBase;
+	PIMAGE_DOS_HEADER pImgDos = (PIMAGE_DOS_HEADER)BaseAddress;
 	if (pImgDos->e_magic != IMAGE_DOS_SIGNATURE)
 	{
-		PRINT_ERROR("Magic Letters");
-		return FALSE;
+		return NULL;
 	}
 
-	PIMAGE_NT_HEADERS pImgNt64 = (PIMAGE_NT_HEADERS)((DWORD_PTR)pBase + pImgDos->e_lfanew);
-	if (pImgNt64->Signature != IMAGE_NT_SIGNATURE)
+	PIMAGE_NT_HEADERS pImgNt = (PIMAGE_NT_HEADERS)((LPBYTE)BaseAddress + pImgDos->e_lfanew);
+	if (pImgNt->Signature != IMAGE_NT_SIGNATURE)
 	{
-		PRINT_ERROR("Nt Signature");
-		return FALSE;
+		return NULL;
 	}
 
-	PIMAGE_OPTIONAL_HEADER pImgOpt = &pImgNt64->OptionalHeader;
+	PIMAGE_OPTIONAL_HEADER pImgOpt = (PIMAGE_OPTIONAL_HEADER)&pImgNt->OptionalHeader;
 
-	PIMAGE_SECTION_HEADER pImgSecHead = IMAGE_FIRST_SECTION(pImgNt64);
+	PIMAGE_EXPORT_DIRECTORY pImgExport = (PIMAGE_EXPORT_DIRECTORY)((LPBYTE)BaseAddress + pImgNt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
 
-	PIMAGE_EXPORT_DIRECTORY pImgExpDir = (PIMAGE_EXPORT_DIRECTORY)((PBYTE)lpFile + pImgOpt->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
+	PDWORD Address = (PDWORD)((LPBYTE)BaseAddress + pImgExport->AddressOfFunctions);
+	PDWORD Name = (PDWORD)((LPBYTE)BaseAddress + pImgExport->AddressOfNames);
+	PWORD Ordinal = (PWORD)((LPBYTE)BaseAddress + pImgExport->AddressOfNameOrdinals);
 
-	PIMAGE_DATA_DIRECTORY pImgDataDir64 = &pImgOpt->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+	for (DWORD i = 0; i < pImgExport->NumberOfNames; i++)
+	{
 
-	*pImgNt = pImgNt64;
-	*pImgSecHeader = pImgSecHead;
-	*ppImgExpDir = pImgExpDir;
-	*pImgDataDir = pImgDataDir64;
 
-	return TRUE;
+		CHAR* FuncName = (CHAR*)BaseAddress + Name[i];
+
+		if (ApiHash != sdbmrol16(FuncName))
+			continue;
+		WORD ord = Ordinal[i];
+		PVOID FuncAddr = (LPBYTE)BaseAddress + Address[ord];
+		return FuncAddr;
+	}
+
+	return NULL;
 
 }
 
 BOOL FixIAT
 (
 	IN PIMAGE_DATA_DIRECTORY pImgDataDir,
-	IN PIMAGE_EXPORT_DIRECTORY pImgDir,
 	IN PBYTE dllBase
 )
 {
-
 	HMODULE k32 = GetModHandleWW(L"Kernel32.dll");
 	if (!k32)
-	{
-		PRINT_ERROR("GetModHandleWW");
 		return FALSE;
-	}
 
-	DWORD LoadLibHash = GetBaseHash("LoadLibraryA", k32, pImgDir);
-	fnLoadLibraryA pLoadLibraryA = (fnLoadLibraryA)GetHashAddress(pImgDir, k32, LoadLibHash);
+	DWORD LoadLibHash = sdbmrol16("LoadLibraryA");
+	fnLoadLibraryA pLoadLibraryA = (fnLoadLibraryA)GetHashAddress(k32, LoadLibHash);
 	if (!pLoadLibraryA)
-	{
-		PRINT_ERROR("pLoadLibraryA");
 		return FALSE;
-	}
 
-	DWORD GetProcHash = GetBaseHash("GetProcAddress", k32, pImgDir);
-	fnGetProcAddress pGetProcAddress = (fnGetProcAddress)GetHashAddress(pImgDir, k32, GetProcHash);
+	DWORD GetProcHash = sdbmrol16("GetProcAddress");
+	fnGetProcAddress pGetProcAddress = (fnGetProcAddress)GetHashAddress(k32, GetProcHash);
 	if (!pGetProcAddress)
-	{
-		PRINT_ERROR("pGetProcAddress");
 		return FALSE;
-	}
 
 	if (pImgDataDir->Size > 0)
 	{
 		PIMAGE_IMPORT_DESCRIPTOR pImportDesc = (PIMAGE_IMPORT_DESCRIPTOR)(dllBase + pImgDataDir->VirtualAddress);
-		while (pImportDesc->Name)
+
+		for (SIZE_T i = 0; i < pImgDataDir->Size; i += sizeof(IMAGE_IMPORT_DESCRIPTOR))
 		{
+			pImportDesc = (PIMAGE_IMPORT_DESCRIPTOR)(pImgDataDir->VirtualAddress + dllBase + i);
 
-			LPSTR dllName = (LPSTR)((ULONGLONG)dllBase + pImportDesc->Name);
-			HMODULE hModule = pLoadLibraryA(dllName);
-			if (hModule)
+			if (pImportDesc->OriginalFirstThunk == NULL && pImportDesc->FirstThunk == NULL)
+				break;
+
+			LPSTR cDllName = (LPSTR)(dllBase + pImportDesc->Name);
+			HMODULE hModule = pLoadLibraryA(cDllName);
+
+			if (!hModule)
+				return FALSE;
+
+			ULONG_PTR uOriginalFirstThunkRVA = pImportDesc->OriginalFirstThunk;
+			ULONG_PTR uFirstThunkRVA = pImportDesc->FirstThunk;
+			SIZE_T ImgThunkSize = 0;
+
+			while (TRUE)
 			{
-				PIMAGE_THUNK_DATA pOriginalThunk = (PIMAGE_THUNK_DATA)(dllBase + pImportDesc->OriginalFirstThunk);
-				PIMAGE_THUNK_DATA pFirstThunk = (PIMAGE_THUNK_DATA)(dllBase + pImportDesc->FirstThunk);
+				PIMAGE_THUNK_DATA pOriginalFirstThunk = (PIMAGE_THUNK_DATA)(dllBase + uOriginalFirstThunkRVA + ImgThunkSize);
+				PIMAGE_THUNK_DATA pFirstThunk = (PIMAGE_THUNK_DATA)(dllBase + uFirstThunkRVA + ImgThunkSize);
 
-				if (!pOriginalThunk)
-					pOriginalThunk = pFirstThunk;
+				if (pOriginalFirstThunk->u1.Function == NULL && pFirstThunk->u1.Function == NULL)
+					break;
 
-				while (pOriginalThunk->u1.AddressOfData)
+				FARPROC pfnImportedFunc;
+
+				if (IMAGE_SNAP_BY_ORDINAL(pOriginalFirstThunk->u1.Ordinal))
 				{
-					FARPROC funcAddr;
-					if (IMAGE_SNAP_BY_ORDINAL(pOriginalThunk->u1.Ordinal))
-					{
-						WORD FuncOrdinal = (WORD)IMAGE_ORDINAL(pOriginalThunk->u1.Ordinal);
-						funcAddr = pGetProcAddress(hModule, (LPCSTR)FuncOrdinal);
-					}
-					else
-					{
-						PIMAGE_IMPORT_BY_NAME pImportByName = (PIMAGE_IMPORT_BY_NAME)(dllBase + pOriginalThunk->u1.AddressOfData);
-						funcAddr = pGetProcAddress(hModule, pImportByName->Name);
-					}
-					pFirstThunk->u1.Function = (ULONG_PTR)funcAddr;
-
-					pOriginalThunk++;
-					pFirstThunk++;
+					pfnImportedFunc = pGetProcAddress(hModule, (LPCSTR)(pOriginalFirstThunk->u1.Ordinal & 0xFFFF));
 				}
+				else
+				{
+					PIMAGE_IMPORT_BY_NAME pImportByName = (PIMAGE_IMPORT_BY_NAME)(dllBase + pOriginalFirstThunk->u1.AddressOfData);
+					pfnImportedFunc = pGetProcAddress(hModule, pImportByName->Name);
+				}
+
+				pFirstThunk->u1.Function = (ULONG_PTR)pfnImportedFunc;
+				ImgThunkSize += sizeof(IMAGE_THUNK_DATA);
 			}
-			pImportDesc++;
 		}
 	}
 
-	FlushInstructionCache(GetCurrentProcess(), NULL, 0);
-
 	return TRUE;
-
 }

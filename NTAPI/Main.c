@@ -33,8 +33,8 @@
 int main()
 {
 
-    DWORD PID;
-    HANDLE hProcess;
+    DWORD PID = 0;
+    HANDLE hProcess = NULL;
 
     if (!GetRemoteProcID(L"notepad.exe", &PID, &hProcess))
     {
@@ -49,11 +49,11 @@ int main()
 
     if (!NtShellInjection(PID, hProcess, Shellcode, sc_size))
     {
-        WARN("Injection Failed! Exiting...");
-        return -1;
+        PRINT_ERROR("NtShellInjection");
+        return 1;
     }
 
     OKAY("successfully injected process with NTAPI!");
-    return EXIT_SUCCESS;
+    return 0;
 
 }

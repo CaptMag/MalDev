@@ -58,10 +58,8 @@ int main()
 	printf("[>] Press Enter to Quit...\n");
 	getchar();
 
-	if (hThread)
-	{
-		CloseHandle(hThread);
-	}
+	if (hProcess)
+		CloseHandle(hProcess);
 
 	return 0;
 

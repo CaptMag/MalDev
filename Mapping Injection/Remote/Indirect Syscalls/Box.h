@@ -10,6 +10,20 @@
 #define CHAR(MSG, ...) printf("[>] Press <Enter> to "		MSG "\n", ##__VA_ARGS__)
 #define PRINT_ERROR(MSG, ...) fprintf(stderr, "[!] " MSG " Failed! Error: 0x%lx""\n", GetLastError())
 
+#pragma comment (lib, "OneCore.lib")
+
+void SetConfig(
+    DWORD SyscallNumber,
+    PVOID SyscallAddress
+);
+
+typedef struct _Instructions_Info {
+    DWORD SSN;
+    PVOID SyscallInstruction;
+} INSTRUCTIONS_INFO, * PINSTRUCTIONS_INFO;
+
+extern NTSTATUS SyscallInvoker();
+
 typedef struct _Syscall_Info {
     PVOID Nt_Function;
     DWORD SSN;
@@ -24,11 +38,9 @@ BOOL GetEAT
     OUT PIMAGE_EXPORT_DIRECTORY* pImgDir
 );
 
-DWORD GetBaseHash
+DWORD sdbmrol16
 (
-    IN char* FuncName,
-    IN PVOID Ntdllbase,
-    IN PIMAGE_EXPORT_DIRECTORY pImgExport
+    IN PCHAR String
 );
 
 BOOL MagmaGate

