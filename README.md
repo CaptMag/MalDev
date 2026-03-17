@@ -72,6 +72,7 @@ As of writing this, these are the current programs completed and working:
     - [Being Debugged](https://github.com/CaptMag/MalDev/tree/main/Anti-Analysis/beingdebugged)
     - [Query Performance](https://github.com/CaptMag/MalDev/tree/main/Anti-Analysis/QueryPerformance)
     - [RDTSC](https://github.com/CaptMag/MalDev/tree/main/Anti-Analysis/RDTSC)
+    - [Self Delete](https://github.com/CaptMag/MalDev/tree/main/Anti-Analysis/SelfDelete)
 
 - Anti-Sandbox
     - [Check Memory](https://github.com/CaptMag/MalDev/tree/main/Anti-Sandbox/Check_Memory)
@@ -100,6 +101,7 @@ As of writing this, these are the current programs completed and working:
     - [Read Target File](https://github.com/CaptMag/MalDev/tree/main/Misc/ReadTargetFile)
     - [Fix IAT](https://github.com/CaptMag/MalDev/tree/main/Misc/FixIAT)
     - [Fix Reloc Table](https://github.com/CaptMag/MalDev/tree/main/Misc/FixRelocTable)
+    - [Blue Screen Of Death](https://github.com/CaptMag/MalDev/tree/main/Misc/BSOD)
 
 - Process Hollowing
     - [WinApi](https://github.com/CaptMag/MalDev/tree/main/Process%20Hollowing/WinApi)
@@ -114,6 +116,9 @@ As of writing this, these are the current programs completed and working:
 
 - Magma Gate
     - [Magma Gate](https://github.com/CaptMag/MalDev/tree/main/MagmaGate)
+   
+- Reflective Dll
+    - [Reflective Dll](https://github.com/CaptMag/MalDev/tree/main/Reflective%20Dll)
 
 - Dll Injection
     - [Basic DLL Injection](https://github.com/CaptMag/MalDev/tree/main/Dll%20Injection/WinApi)  

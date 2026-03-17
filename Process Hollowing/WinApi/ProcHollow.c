@@ -1,4 +1,4 @@
-#include "box.h"
+#include "ProcHollow.h"
 
 // https://github.com/KnightChaser/simple-pe-parser/blob/master/simple-pe-parser/peParser.c
 // https://github.com/m0n0ph1/Process-Hollowing/blob/master/sourcecode/ProcessHollowing/ProcessHollowing.cpp
