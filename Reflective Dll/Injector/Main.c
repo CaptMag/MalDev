@@ -9,7 +9,7 @@ int main()
 			ReflectiveDllOffset = 0,
 			ReflectiveDllSize = 0;
 
-	PWCHAR	ReflectiveDllName = L"C:\\Users\\Mag\\Desktop\\C-C++\\reflectivedll\\x64\\Release\\reflectivedll.dll",
+	PWCHAR	ReflectiveDllName = L"C:Path/To/Dll",
 			TargetProcessName = L"notepad.exe";
 
 	LPVOID	ReflectiveDllBuffer = NULL;
