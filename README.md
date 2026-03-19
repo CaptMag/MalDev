@@ -125,6 +125,10 @@ As of writing this, these are the current programs completed and working:
     - [Syscall Dll Injection](https://github.com/CaptMag/MalDev/tree/main/Dll%20Injection/Syscall)
     - [Dll Hijacking](https://github.com/CaptMag/MalDev/tree/main/Dll%20Injection/DllHijacking)
     - [Dll Sideloading](https://github.com/CaptMag/MalDev/tree/main/Dll%20Injection/DllSideloading)
+   
+- Persistence
+    - [Windows Registry](https://github.com/CaptMag/MalDev/tree/main/Persistence/Windows%20Registry)
+    - [Windows Services](https://github.com/CaptMag/MalDev/tree/main/Persistence/Windows%20Services)
  
 ## Errors
 
