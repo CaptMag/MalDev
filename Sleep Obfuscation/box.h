@@ -1,6 +1,7 @@
 #pragma once
 #include <Windows.h>
 #include <stdio.h>
+#include <bcrypt.h>
 
 #define NtCurrentProcess() ((HANDLE)(LONG_PTR)-1)
 
@@ -19,18 +20,24 @@ typedef NTSTATUS(NTAPI* pNtWaitForSingleObject)(HANDLE Handle, BOOLEAN Alertable
 typedef PVOID(NTAPI* pRtlCopyMemory)(PVOID Destination, const PVOID Source, SIZE_T Length);
 
 typedef struct {
-	VirtualProtect_t VirtualProtect;
-	WaitForSingleObject_t WaitForSingleObject;
-	NtSetEvent_t NtSetEvent;
-	pNtContinue NtContinue;
-	pNtWaitForSingleObject NtWaitForSingleObject;
-	pRtlCopyMemory RtlCopyMemory;
+	VirtualProtect_t VirtualProtect;					/**>> Used To Change Memory Protection*/
+	WaitForSingleObject_t WaitForSingleObject;			/**>> Used To Wait For a Handle To Finish Executing*/
+	NtSetEvent_t NtSetEvent;							/**>> Used To Set an Event via NTAPI*/
+	pNtContinue NtContinue;								/**>> Used To Continue Execution*/
+	pNtWaitForSingleObject NtWaitForSingleObject;		/**>> Used To Wait For a Handle To Finish Executing via NTAPI*/
+	pRtlCopyMemory RtlCopyMemory;						/**>> Wrapper for memcpy*/
 } WinApi, *pWinApi;
 
-#define AES_KEY_SIZE 32
-#define GCM_NONCE_SIZE 12
-#define GCM_TAG_SIZE 16
-
+/**
+* @brief
+*	Used To Encrypt Payload with AES-256-GCM While Local Process is Sleeping
+* 
+* @param SleepTime
+*	User-Specified Sleep time
+* 
+* @return
+*	Nothing
+*/
 VOID SleepObfusc
 (
 	IN PLARGE_INTEGER SleepTime

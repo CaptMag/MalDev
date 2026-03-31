@@ -1,5 +1,13 @@
 #pragma once
 #include <Windows.h>
+#include <bcrypt.h>
+#pragma comment(lib, "bcrypt.lib")
+
+#define AES_KEY_SIZE 32
+#define GCM_NONCE_SIZE 12
+#define GCM_TAG_SIZE 16
+
+#define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
 
 typedef NTSTATUS(WINAPI* pBCryptOpenAlgorithmProvider)(BCRYPT_ALG_HANDLE*, LPCWSTR, LPCWSTR, ULONG);
 typedef NTSTATUS(WINAPI* pBCryptSetProperty)(BCRYPT_HANDLE, LPCWSTR, PUCHAR, ULONG, ULONG);
@@ -16,13 +24,6 @@ typedef struct {
     pBCryptDecrypt                  BCryptDecrypt;                  /**>> Decryption*/
     pHeapAlloc                      HeapAlloc;                      /**>> Allocate Space onto The Heap*/
 } AesApi, * pAesApi;
-
-const BYTE Nonce[] =
-{
-    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-    0x08, 0x09, 0x0A, 0x0B
-};
-
 
 /**
 * @brief
@@ -47,6 +48,24 @@ VOID AesGenKey
 /**
 * @brief
 *   AES-256-GCM Encryption using ROP chains
+* 
+* @param Buffer
+*   Target Process Buffer
+* 
+* @param BufferSize
+*   Target Buffer Size
+* 
+* @param EncryptedSize
+*   AES Encrypted Buffer Size
+* 
+* @param AesKey
+*   Randomized AES Key (Derived from AesGenKey)
+* 
+* @param pTag
+*   Ensures Integrity of Cipher Text
+* 
+* @param pCipherText
+*   Used To Hold Newly Encrypted Cipher Text
 */
 PBYTE AesEncrypt
 (
@@ -58,11 +77,33 @@ PBYTE AesEncrypt
     OUT PBYTE* pCipherText
 );
 
+/**
+* @brief
+*   Used to Decrypt AES-256-GCM
+* 
+* @param pCipherText
+*   Encrypted Text
+* 
+* @param pCipherSize
+*   Encrypted Text Size
+* 
+* @param pTag
+*   Used To Ensure Integrity of Decrypted Text
+* 
+* @param Key
+*   Randomized AES Key (Derived From AesGenKey)
+* 
+* @param pPlainTextSize
+*   Used To Hold The Size of Newly Decrypted Text
+* 
+* @param pPlainText
+*   Newly Unencrypted Plain Text
+*/
 PBYTE AesDecrypt
 (
-    IN PBYTE CipherText,
-    IN DWORD CipherSize,
-    IN PBYTE Tag,
+    IN PBYTE* pCipherText,
+    IN DWORD* pCipherSize,
+    IN PBYTE* pTag,
     IN DWORD TagSize,
     IN PBYTE Key,
     OUT PDWORD pPlainTextSize,

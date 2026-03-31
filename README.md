@@ -131,7 +131,7 @@ As of writing this, these are the current programs completed and working:
     - [Windows Services](https://github.com/CaptMag/MalDev/tree/main/Persistence/Windows%20Services)
 
 - Sleep Obfuscation
-    - [Sleep Obfucation](https://github.com/CaptMag/MalDev/tree/main/Sleep%20Obfuscation)
+    - [Sleep Obfuscation](https://github.com/CaptMag/MalDev/tree/main/Sleep%20Obfuscation)
  
 ## Errors
 
