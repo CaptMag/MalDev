@@ -129,6 +129,9 @@ As of writing this, these are the current programs completed and working:
 - Persistence
     - [Windows Registry](https://github.com/CaptMag/MalDev/tree/main/Persistence/Windows%20Registry)
     - [Windows Services](https://github.com/CaptMag/MalDev/tree/main/Persistence/Windows%20Services)
+
+- Sleep Obfuscation
+    - [Sleep Obfucation](https://github.com/CaptMag/MalDev/tree/main/Sleep%20Obfuscation)
  
 ## Errors
 
