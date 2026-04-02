@@ -1,1 +1,0 @@
-# Must Be Compiled on x86 Arch

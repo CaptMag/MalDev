@@ -70,8 +70,6 @@ As of writing this, these are the current programs completed and working:
 
 - Anti-Analysis
     - [Being Debugged](https://github.com/CaptMag/MalDev/tree/main/Anti-Analysis/beingdebugged)
-    - [Query Performance](https://github.com/CaptMag/MalDev/tree/main/Anti-Analysis/QueryPerformance)
-    - [RDTSC](https://github.com/CaptMag/MalDev/tree/main/Anti-Analysis/RDTSC)
     - [Self Delete](https://github.com/CaptMag/MalDev/tree/main/Anti-Analysis/SelfDelete)
 
 - Anti-Sandbox

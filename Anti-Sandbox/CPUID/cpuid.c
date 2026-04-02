@@ -90,14 +90,42 @@ BOOL leaf4info()
 
 	leaf04(info);
 
-	char ms_hv[13];
+	char Hypervisor[13];
 
-	memcpy(ms_hv + 0, &info[1], 4);
-	memcpy(ms_hv + 4, &info[2], 4);
-	memcpy(ms_hv + 8, &info[3], 4);
-	ms_hv[12] = 0;
+	memcpy(Hypervisor + 0, &info[1], 4);
+	memcpy(Hypervisor + 4, &info[2], 4);
+	memcpy(Hypervisor + 8, &info[3], 4);
+	Hypervisor[12] = 0;
 
-	printf("Microsoft Hypervisor: %s\n", ms_hv);
+	printf("Current Hypervisor: %s\n", Hypervisor);
+
+	if (strcmp(Hypervisor, "VMwareVMware") == 0) {
+		WARN("Running in VMware!");
+		return FALSE;
+	}
+	else if (strcmp(Hypervisor, "Microsoft Hv") == 0) {
+		WARN("Running in Hyper-V!");
+		return FALSE;
+	}
+	else if (strcmp(Hypervisor, "KVMKVMKVM") == 0) {
+		WARN("Running in KVM!");
+		return FALSE;
+	}
+	else if (strcmp(Hypervisor, "VBoxVBoxVBox") == 0) {
+		WARN("Running in VirtualBox!");
+		return FALSE;
+	}
+	else if (strcmp(Hypervisor, "TCGTCGTCGTCG") == 0) {
+		WARN("Running in QEMU!");
+		return FALSE;
+	}
+	else if (strcmp(Hypervisor, "XenVMMXenVMM") == 0) {
+		WARN("Running in Xen");
+		return FALSE;
+	}
+	else {
+		WARN("Unknown hypervisor");
+	}
 
 	return TRUE;
 
