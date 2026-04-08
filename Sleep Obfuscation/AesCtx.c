@@ -28,7 +28,7 @@ VOID AesGenKey
 		return;
 	}
 
-	if (!NT_SUCCESS(BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_AES_ALGORITHM, NULL, 0)))
+	if (!NT_SUCCESS(BCryptGenRandom(hAlg, Key, KeyLen, 0)))
 		return;
 
 	*AesKey = Key;
@@ -53,7 +53,18 @@ PBYTE AesEncrypt
 
 	CONTEXT  Rop[10] = { 0 };
 	pAesApi Api = { 0 };
-	RtlSecureZeroMemory(&Api, sizeof(Api));
+	Api = (pAesApi)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(AesApi));
+
+	HANDLE hEvent = CreateEventW(0, 0, 0, 0);
+	HANDLE hTimerQueue = CreateTimerQueue();
+	HANDLE hNewTimer;
+	DWORD Delay = 0;
+
+	pWinApi pcWinApi = { 0 };
+	pcWinApi = (pWinApi)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WinApi));
+	pcWinApi->NtSetEvent = GetProcAddress(GetModuleHandleA("ntdll"), "NtSetEvent");
+	pcWinApi->NtContinue = GetProcAddress(GetModuleHandleA("ntdll"), "NtContinue");
+	pcWinApi->NtWaitForSingleObject = GetProcAddress(GetModuleHandleA("ntdll"), "NtWaitForSingleObject");
 
 	BCRYPT_ALG_HANDLE hAlg = NULL;
 	BCRYPT_KEY_HANDLE hKey = NULL;
@@ -133,10 +144,35 @@ PBYTE AesEncrypt
 	Rop[3].R9 = &authInfo;
 	*(DWORD64*)(StackBuffer[3] + 0x20) = (DWORD64)NULL;
 	*(DWORD64*)(StackBuffer[3] + 0x28) = (DWORD64)0;
-	*(DWORD64*)(StackBuffer[3] + 0x30) = (DWORD64)CipherText;
-	*(DWORD64*)(StackBuffer[3] + 0x38) = (DWORD64)pcbResult;
-	*(DWORD64*)(StackBuffer[3] + 0x40) = (DWORD64)&EncryptedBytes;
+	*(DWORD64*)(StackBuffer[3] + 0x30) = (DWORD64)NULL;
+	*(DWORD64*)(StackBuffer[3] + 0x38) = (DWORD64)0;
+	*(DWORD64*)(StackBuffer[3] + 0x40) = (DWORD64)&pcbResult;
 	*(DWORD64*)(StackBuffer[3] + 0x48) = (DWORD64)0;
+
+	CipherText = (PBYTE)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, BufferSize);
+
+	Rop[4].Rip = Api->BCryptEncrypt;
+	Rop[4].Rcx = hKey;
+	Rop[4].Rdx = Buffer;
+	Rop[4].R8 = BufferSize;
+	Rop[4].R9 = &authInfo;
+	*(DWORD64*)(StackBuffer[4] + 0x20) = (DWORD64)NULL;
+	*(DWORD64*)(StackBuffer[4] + 0x28) = (DWORD64)0;
+	*(DWORD64*)(StackBuffer[4] + 0x30) = (DWORD64)CipherText;
+	*(DWORD64*)(StackBuffer[4] + 0x38) = (DWORD64)pcbResult;
+	*(DWORD64*)(StackBuffer[4] + 0x40) = (DWORD64)&EncryptedBytes;
+	*(DWORD64*)(StackBuffer[4] + 0x48) = (DWORD64)0;
+
+	Rop[5].Rip = pcWinApi->NtSetEvent;
+	Rop[5].Rcx = hEvent;
+	Rop[5].Rdx = NULL;
+
+	for (int i = 0; i < 6; i++)
+	{
+		CreateTimerQueueTimer(&hNewTimer, hTimerQueue, pcWinApi->NtContinue, &Rop[i], Delay += 100, 0, WT_EXECUTEINTIMERTHREAD);
+	}
+
+	pcWinApi->NtWaitForSingleObject(hEvent, FALSE, NULL);
 
 	*pCipherText = CipherText;
 }
@@ -159,18 +195,31 @@ PBYTE AesDecrypt
 
 	CONTEXT Rop[10] = { 0 };
 	pAesApi Api = { 0 };
-	RtlSecureZeroMemory(&Api, sizeof(Api));
+	Api = (pAesApi)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(AesApi));
+
+	HANDLE hEvent = CreateEventW(0, 0, 0, 0);
+	HANDLE hTimerQueue = CreateTimerQueue();
+	HANDLE hNewTimer;
+	DWORD Delay = 0;
+
+	pWinApi pcWinApi = { 0 };
+	pcWinApi = (pWinApi)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WinApi));
+	pcWinApi->NtSetEvent = GetProcAddress(GetModuleHandleA("ntdll"), "NtSetEvent");
+	pcWinApi->NtContinue = GetProcAddress(GetModuleHandleA("ntdll"), "NtContinue");
+	pcWinApi->NtWaitForSingleObject = GetProcAddress(GetModuleHandleA("ntdll"), "NtWaitForSingleObject");
 
 	NTSTATUS status = NULL;
 	BCRYPT_ALG_HANDLE hAlg = NULL;
 	BCRYPT_KEY_HANDLE hKey = NULL;
+
 	PBYTE PlainText = 0;
-	PBYTE CipherText = 0;
-	PBYTE Tag = 0;
-	DWORD CipherSize = 0;
+	PBYTE CipherText = *pCipherText;
+	DWORD CipherSize = *pCipherSize;
+	PBYTE Tag = *pTag;
 	DWORD PlainTextSize = 0;
 	DWORD DecryptedBytes = 0;
 	PBYTE StackBuffer[10];
+
 	BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO authInfo;
 	BCRYPT_INIT_AUTH_MODE_INFO(authInfo);
 
@@ -239,8 +288,16 @@ PBYTE AesDecrypt
 	*(DWORD64*)(StackBuffer[4] + 0x40) = (DWORD64)&DecryptedBytes;
 	*(DWORD64*)(StackBuffer[4] + 0x48) = (DWORD64)0;
 
-	*pCipherSize = CipherSize;
-	*pCipherText = CipherText;
-	*pTag = Tag;
+	Rop[5].Rip = pcWinApi->NtSetEvent;
+	Rop[5].Rcx = hEvent;
+	Rop[5].Rdx = NULL;
+
+	for (int i = 0; i < 6; i++)
+	{
+		CreateTimerQueueTimer(&hNewTimer, hTimerQueue, pcWinApi->NtContinue, &Rop[i], Delay += 100, 0, WT_EXECUTEINTIMERTHREAD);
+	}
+
+	pcWinApi->NtWaitForSingleObject(hEvent, FALSE, NULL);
+
 	*pPlainText = PlainText;
 }

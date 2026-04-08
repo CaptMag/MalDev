@@ -131,6 +131,9 @@ As of writing this, these are the current programs completed and working:
 
 - Sleep Obfuscation
     - [Sleep Obfuscation](https://github.com/CaptMag/MalDev/tree/main/Sleep%20Obfuscation)
+
+- LSASS
+    - [MiniDumpWriteDump](https://github.com/CaptMag/MalDev/tree/main/LSASS/MiniDumpWriteDump)  
  
 ## Errors
 
