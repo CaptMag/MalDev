@@ -26,6 +26,7 @@ As of writing this, these are the current programs completed and working:
     - [XOR](https://github.com/CaptMag/MalDev/tree/main/Encryption/XOR_Encryption)
     - [AES-256-GCM](https://github.com/CaptMag/MalDev/tree/main/Encryption/Aes256GCM)
     - [ChaCha20](https://github.com/CaptMag/MalDev/tree/main/Encryption/ChaCha20)
+    - [Heap Encryption](https://github.com/CaptMag/MalDev/tree/main/Encryption/HeapEncryption)
 
 - Hashing
     - [DJB2](https://github.com/CaptMag/MalDev/tree/main/Hashing/djb2)
