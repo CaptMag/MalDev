@@ -8,7 +8,8 @@ Hey! Welcome to my repo :))))
 
 I am Captain Magma, a passionate individual dedicated to cybersecurity, malware development, and analysis.
 
-The design for this repository is to manage my MalDev road-path as I learn and update this repository with my notes and code.
+The design for this repository is to manage my MalDev road-path as I learn and update this repository with my notes and code.  
+I am not the author of any of these techniques, this is just my implementation of them.
 
 > [!Important]
 > I just wanted to clarify that I am __not__ an expert at all, I am noobish at best. That being said, please don't expect amazing APT sort of malware coming from this repo.
@@ -40,6 +41,7 @@ As of writing this, these are the current programs completed and working:
     - [PPID Spoofing](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/PPID%20Spoofing)
     - [Double Obfuscation (GetProcAddress + GetModuleHandle)](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/DoubleObfs)
     - [Memcpy + Strcpy + Strcmp](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/Mem_StrCpy)
+    - [Compile Time Hashing](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/CompileTimeHashing)
 
 - Native API
     - [NT Shellcode Injection](https://github.com/CaptMag/MalDev/tree/main/NTAPI/NT_Shellcode_Injection)
