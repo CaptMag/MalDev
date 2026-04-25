@@ -92,6 +92,7 @@ As of writing this, these are the current programs completed and working:
     - [Fiber Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/Fiber_Injection)
     - [Early Bird Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/EarlyBird)
     - [Portable Executable Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/PE_Injection)
+    - [Process Hypnosis](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/Process%20Hypnosis)
 
 - Stomping
     - [Local](https://github.com/CaptMag/MalDev/tree/main/Stomping/Local)
