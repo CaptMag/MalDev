@@ -106,9 +106,11 @@ As of writing this, these are the current programs completed and working:
     - [Fix Reloc Table](https://github.com/CaptMag/MalDev/tree/main/Misc/FixRelocTable)
     - [Blue Screen Of Death](https://github.com/CaptMag/MalDev/tree/main/Misc/BSOD)
 
-- Process Hollowing
-    - [WinApi](https://github.com/CaptMag/MalDev/tree/main/Process%20Hollowing/WinApi)
-    - [Syscall](https://github.com/CaptMag/MalDev/tree/main/Process%20Hollowing/Syscall)
+- Hollowing
+    - [Process Hollowing](https://github.com/CaptMag/MalDev/tree/main/Hollowing/ProcessHollowing)
+        - [WinApi](https://github.com/CaptMag/MalDev/tree/main/Hollowing/ProcessHollowingWinApi)
+        - [Syscall](https://github.com/CaptMag/MalDev/tree/main/Hollowing/ProcessHollowingSyscall)
+    - [Hypnosis Hollowing](https://github.com/CaptMag/MalDev/tree/main/Hollowing/HypnosisHollowing)
 
 - ETW Bypass
     - [Etw Byte Patching](https://github.com/CaptMag/MalDev/tree/main/EtwBypass/EtwPatch)
