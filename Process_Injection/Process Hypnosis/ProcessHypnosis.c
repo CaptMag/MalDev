@@ -2,7 +2,7 @@
 
 // Original Author: https://github.com/CarlosG13/Process-Hypnosis-Debugger-assisted-control-flow-hijack
 
-BOOL CreateDebugedProcess
+BOOL CreateDebuggedProcess
 (
 	IN LPCSTR ProcessName,
 	OUT DWORD* TID,

@@ -42,6 +42,7 @@ As of writing this, these are the current programs completed and working:
     - [Double Obfuscation (GetProcAddress + GetModuleHandle)](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/DoubleObfs)
     - [Memcpy + Strcpy + Strcmp](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/Mem_StrCpy)
     - [Compile Time Hashing](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/CompileTimeHashing)
+    - [Process Re-Imaging](https://github.com/CaptMag/MalDev/tree/main/Obfuscation/ProcessReimaging)
 
 - Native API
     - [NT Shellcode Injection](https://github.com/CaptMag/MalDev/tree/main/NTAPI/NT_Shellcode_Injection)
@@ -108,8 +109,8 @@ As of writing this, these are the current programs completed and working:
 
 - Hollowing
     - [Process Hollowing](https://github.com/CaptMag/MalDev/tree/main/Hollowing/ProcessHollowing)
-        - [WinApi](https://github.com/CaptMag/MalDev/tree/main/Hollowing/ProcessHollowingWinApi)
-        - [Syscall](https://github.com/CaptMag/MalDev/tree/main/Hollowing/ProcessHollowingSyscall)
+        - [WinApi](https://github.com/CaptMag/MalDev/tree/main/Hollowing/ProcessHollowing/WinApi)
+        - [Syscall](https://github.com/CaptMag/MalDev/tree/main/Hollowing/ProcessHollowing/Syscall)
     - [Hypnosis Hollowing](https://github.com/CaptMag/MalDev/tree/main/Hollowing/HypnosisHollowing)
 
 - ETW Bypass

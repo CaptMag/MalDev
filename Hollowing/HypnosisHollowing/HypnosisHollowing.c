@@ -1,6 +1,6 @@
 #include "box.h"
 
-BOOL CreateDebugedProcess
+BOOL CreateDebuggedProcess
 (
 	IN LPCSTR ProcessName,
 	OUT DWORD* TID,
