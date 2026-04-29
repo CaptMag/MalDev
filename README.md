@@ -92,7 +92,6 @@ As of writing this, these are the current programs completed and working:
     - [APC Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/APC_Injection)
     - [Fiber Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/Fiber_Injection)
     - [Early Bird Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/EarlyBird)
-    - [Portable Executable Injection](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/PE_Injection)
     - [Process Hypnosis](https://github.com/CaptMag/MalDev/tree/main/Process_Injection/Process%20Hypnosis)
 
 - Stomping
@@ -106,6 +105,8 @@ As of writing this, these are the current programs completed and working:
     - [Fix IAT](https://github.com/CaptMag/MalDev/tree/main/Misc/FixIAT)
     - [Fix Reloc Table](https://github.com/CaptMag/MalDev/tree/main/Misc/FixRelocTable)
     - [Blue Screen Of Death](https://github.com/CaptMag/MalDev/tree/main/Misc/BSOD)
+    - [Map Dll File](https://github.com/CaptMag/MalDev/tree/main/Misc/MapDllFile)
+    - [Change Protections](https://github.com/CaptMag/MalDev/tree/main/Misc/ChangeProtection)
 
 - Hollowing
     - [Process Hollowing](https://github.com/CaptMag/MalDev/tree/main/Hollowing/ProcessHollowing)
@@ -141,6 +142,10 @@ As of writing this, these are the current programs completed and working:
 
 - LSASS
     - [MiniDumpWriteDump](https://github.com/CaptMag/MalDev/tree/main/LSASS/MiniDumpWriteDump)  
+
+- PE Injection
+    - [Portable Executable Injection](https://github.com/CaptMag/MalDev/tree/main/PE%20Injection/PE_Injection)
+    - [Module Overloading](https://github.com/CaptMag/MalDev/tree/main/PE%20Injection/ModuleOverloading)
  
 ## Errors
 

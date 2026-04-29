@@ -19,7 +19,7 @@ int main()
 			lpFile = NULL;
 
 
-	if (!CreateDebugedProcess(TARGET_PROCESS, &TID, &PID, &hProcess, &hThread))
+	if (!CreateDebuggedProcess(TARGET_PROCESS, &TID, &PID, &hProcess, &hThread))
 	{
 		PRINT_ERROR("CreateDebugedProcess");
 		return 1;

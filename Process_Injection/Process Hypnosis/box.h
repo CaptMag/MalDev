@@ -25,7 +25,7 @@
 * @param hThread
 *	Used to the process's Thread Handle
 */
-BOOL CreateDebugedProcess
+BOOL CreateDebuggedProcess
 (
 	IN LPCSTR ProcessName,
 	OUT DWORD* TID,
