@@ -3,10 +3,13 @@
 #define DOWN 32
 #define UP -32
 
-PVOID WalkPeb()
+HMODULE WalkPeb
+(
+	OUT PIMAGE_EXPORT_DIRECTORY* pImgExportDirectory
+)
 {
 
-	PPEB pPeb = __readgsqword(0x60);
+	PPEB pPeb = __readgsqword(0x60); // PEB -> x64
 	PPEB_LDR_DATA pLdr = (PPEB_LDR_DATA)pPeb->Ldr;
 
 	INFO("PEB Address: [0x%p]", pPeb);
@@ -28,43 +31,15 @@ PVOID WalkPeb()
 		if (_wcsicmp(Ntdll->BaseDllName.Buffer, L"ntdll.dll") == 0)
 		{
 			OKAY("Found Address for Ntdll | Base Address: [0x%p]", Ntdll->DllBase);
-			return Ntdll->DllBase;
+			PIMAGE_NT_HEADERS64 pImgNt = (PIMAGE_NT_HEADERS)((PBYTE)Ntdll->DllBase + ((PIMAGE_DOS_HEADER)Ntdll->DllBase)->e_lfanew);
+			PIMAGE_EXPORT_DIRECTORY pImgExportDir = (PIMAGE_EXPORT_DIRECTORY)((PBYTE)Ntdll->DllBase + pImgNt->OptionalHeader.DataDirectory[0].VirtualAddress);
+			*pImgExportDirectory = pImgExportDir;
+			return (HMODULE)Ntdll->DllBase;
 		}
 
 	}
 
 	return NULL;
-
-}
-
-BOOL GetEAT
-(
-	IN PVOID Ntdllbase,
-	OUT PIMAGE_EXPORT_DIRECTORY* pImgDir
-)
-{
-
-	PIMAGE_DOS_HEADER pImgDos = (PIMAGE_DOS_HEADER)Ntdllbase;
-	if (pImgDos->e_magic != IMAGE_DOS_SIGNATURE)
-	{
-		PRINT_ERROR("Dos Header");
-		return FALSE;
-	}
-
-	PIMAGE_NT_HEADERS64 pImgNt = (PIMAGE_NT_HEADERS64)((PBYTE)Ntdllbase + pImgDos->e_lfanew);
-	if (pImgNt->Signature != IMAGE_NT_SIGNATURE)
-	{
-		PRINT_ERROR("Nt Headers");
-		return FALSE;
-	}
-
-	PIMAGE_EXPORT_DIRECTORY pImgExpDir = (PIMAGE_EXPORT_DIRECTORY)((PBYTE)Ntdllbase + pImgNt->OptionalHeader.DataDirectory[0].VirtualAddress);
-
-	INFO("pImgExpDir [0x%p]", pImgExpDir);
-
-	*pImgDir = pImgExpDir;
-
-	return TRUE;
 
 }
 

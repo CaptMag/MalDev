@@ -6,7 +6,23 @@
 int main()
 {
 
-	if (!ModuleOverload(PAYLOAD_PE, SACRIFICAL_DLL))
+	LPVOID FileBuffer = NULL;
+	DWORD NumberOfBytesToRead = 0;
+	PEHEADERS PeHeader = { 0 };
+
+	if (!ReadTargetFile(PAYLOAD_PE, &FileBuffer, &NumberOfBytesToRead))
+	{
+		PRINT_ERROR("ReadTargetFile");
+		return 1;
+	}
+
+	if (!GrabPeHeader(FileBuffer, &PeHeader))
+	{
+		PRINT_ERROR("GrabPeHeader");
+		return 1;
+	}
+
+	if (!ModuleOverload(PAYLOAD_PE, SACRIFICAL_DLL, FileBuffer, PeHeader))
 	{
 		PRINT_ERROR("ModuleOverload");
 		return 1;

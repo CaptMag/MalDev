@@ -2,33 +2,23 @@
 
 int main()
 {
-    PVOID Ntdllbase = NULL;
+    HMODULE Ntdllbase = NULL;
     PIMAGE_EXPORT_DIRECTORY pImgDir = NULL;
     SYSCALL_INFO info = { 0 };
 
     INFO("Walking PEB!");
 
-    Ntdllbase = WalkPeb();
+    Ntdllbase = WalkPeb(&pImgDir);
     if (!Ntdllbase)
     {
         PRINT_ERROR("WalkPeb");
         return 1;
     }
 
-    INFO("Getting EAT!");
-
-    if (!GetEAT(Ntdllbase, &pImgDir))
-    {
-        PRINT_ERROR("GetEAT");
-        return 1;
-    }
-
     INFO("Hashing API!");
 
-    DWORD apiHash = GetBaseHash(
-        "NtWriteVirtualMemory",
-        Ntdllbase,
-        pImgDir
+    DWORD apiHash = sdbmrol16(
+        "NtWriteVirtualMemory"
     );
 
     INFO("Resolving syscall!");

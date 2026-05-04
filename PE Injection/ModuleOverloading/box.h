@@ -12,6 +12,17 @@
 #define PRINT_ERROR(MSG, ...) fprintf(stderr, "[!] " MSG " Failed! Error: 0x%lx""\n", GetLastError())
 #define NTERROR(MSG, ...) fprintf(stderr, "[!] " MSG " Failed! Error: 0x%08X""\n", status)
 
+typedef struct _PEHEADERS {
+    PIMAGE_NT_HEADERS64		pImgNt;					// pImgNt
+    PIMAGE_SECTION_HEADER	pImgSecHeader;			// IMAGE_FIRST_SECTION(pImgNt)
+    PIMAGE_DATA_DIRECTORY	pImgDataDir;			// pImgNt->OptionalHeader.DataDirectory
+    PIMAGE_DATA_DIRECTORY	pImgDirEntryImport;		// [IMAGE_DIRECTORY_ENTRY_IMPORT]
+    PIMAGE_DATA_DIRECTORY	pImgDirEntryBaseReloc;	// [IMAGE_DIRECTORY_ENTRY_BASERELOC]
+    PIMAGE_DATA_DIRECTORY	pImgDirEntryTls;		// [IMAGE_DIRECTORY_ENTRY_TLS]
+    PIMAGE_DATA_DIRECTORY	pImgDirEntryException;	// [IMAGE_DIRECTORY_ENTRY_EXCEPTION]
+    PIMAGE_DATA_DIRECTORY	pImgDirEntryExport;		// [IMAGE_DIRECTORY_ENTRY_EXPORT]
+} PEHEADERS, * PPEHEADERS;
+
 #define LOADAPI(hModule, Type, Name) \
     Type Name = (Type)GetProcAddress(hModule, #Name)
 
@@ -83,6 +94,12 @@ typedef NTSTATUS (NTAPI* pNtMapViewOfSection)(
     _In_ SECTION_INHERIT InheritDisposition,
     _In_ ULONG AllocationType,
     _In_ ULONG PageProtection
+);
+
+BOOL GrabPeHeader
+(
+    IN  LPVOID lpFile,
+    OUT PPEHEADERS pPe
 );
 
 /**
@@ -189,7 +206,7 @@ BOOL FixIAT
 BOOL ChangeProtection
 (
     IN PVOID TargetBaseAddress,
-    IN LPVOID lpFile
+    IN PEHEADERS PeHeader
 );
 
 
@@ -236,5 +253,7 @@ BOOL OverwriteTargetDll
 BOOL ModuleOverload
 (
     IN LPCSTR PePayload,
-    IN LPCSTR TargetDll
+    IN LPCSTR TargetDll,
+    IN LPVOID FileBuffer,
+    IN PEHEADERS PeHeader
 );

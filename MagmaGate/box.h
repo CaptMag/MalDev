@@ -10,6 +10,16 @@
 #define CHAR(MSG, ...) printf("[>] Press <Enter> to "		MSG "\n", ##__VA_ARGS__)
 #define PRINT_ERROR(MSG, ...) fprintf(stderr, "[!] " MSG " Failed! Error: 0x%lx""\n", GetLastError())
 
+
+#define MAGMAMACRO(pImgDir, Ntdll, Api, SyscallInfo)                        \
+    do {                                                                      \
+        SYSCALL_INFO _info = { 0 };                                          \
+        DWORD _hash = sdbmrol16(#Api);                                       \
+        MagmaGate(pImgDir, Ntdll, _hash, &_info);                           \
+        (SyscallInfo).SSN = _info.SSN;                                       \
+        (SyscallInfo).SyscallInstruction = _info.SyscallInstruction;         \
+    } while(0)
+
 typedef struct _UNICODE_STRING {
     USHORT Length;                             // +0x00
     USHORT MaximumLength;                      // +0x02
@@ -77,12 +87,9 @@ typedef struct _Syscall_Info {
     PVOID SyscallInstruction;
 } SYSCALL_INFO, * PSYSCALL_INFO;
 
-PVOID WalkPeb();
-
-BOOL GetEAT
+HMODULE WalkPeb
 (
-    IN PVOID Ntdllbase,
-    OUT PIMAGE_EXPORT_DIRECTORY* pImgDir
+    OUT PIMAGE_EXPORT_DIRECTORY* pImgExportDirectory
 );
 
 DWORD sdbmrol16
