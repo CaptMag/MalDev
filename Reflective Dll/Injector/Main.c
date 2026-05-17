@@ -1,3 +1,4 @@
+﻿
 #include "box.h"
 
 int main()
@@ -9,8 +10,8 @@ int main()
 			ReflectiveDllOffset = 0,
 			ReflectiveDllSize = 0;
 
-	PWCHAR	ReflectiveDllName = L"C:Path/To/Dll",
-			TargetProcessName = L"notepad.exe";
+	PWCHAR	ReflectiveDllName = L"Path\To\Dll",
+			TargetProcessName = L"Notepad.exe";
 
 	LPVOID	ReflectiveDllBuffer = NULL;
 
@@ -43,7 +44,7 @@ int main()
 
 	OKAY("[%ld] Current Pid For %ls", PID, TargetProcessName);
 
-	INFO("Injecting (Moment Of Truth)...");
+	INFO("Injecting...");
 
 	if (!InjectReflectiveDll(hProcess, ReflectiveDllOffset, (PBYTE)ReflectiveDllBuffer, ReflectiveDllSize))
 	{
@@ -52,6 +53,10 @@ int main()
 	}
 
 	OKAY("Success!");
+
+	CHAR("Quit...");
+	getchar();
+
 	return 0;
 
 }

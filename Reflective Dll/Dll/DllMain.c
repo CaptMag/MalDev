@@ -1,18 +1,21 @@
 #include "box.h"
 
-BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
+VOID Payload()
 {
-    if (dwReason == DLL_PROCESS_ATTACH)
-    {
-        LOADAPIHASH(fnLoadLibraryA, pLoadLibraryA, KERNEL32HASH, LOADLIBRARYAHASH);
+	MessageBoxA(NULL, "Reflective Dll is Successful!", "Krakatowa!", MB_OK | MB_ICONINFORMATION);
+}
 
-        HMODULE hUser32 = pLoadLibraryA("user32.dll");
-        if (hUser32)
-        {
-            LOADAPIHASH(fnMessageBoxA, pMessageBoxA, USER32HASH, MESSAGEBOXAHASH);
-            if (pMessageBoxA)
-                pMessageBoxA(NULL, "Hello", "Hello", MB_OK);
-        }
-    }
-    return TRUE;
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved) {
+
+	switch (dwReason)
+	{
+	case DLL_PROCESS_ATTACH:
+		Payload();
+		break;
+	case DLL_THREAD_ATTACH:
+	case DLL_THREAD_DETACH:
+	case DLL_PROCESS_DETACH:
+		break;
+	}
+	return TRUE;
 }
