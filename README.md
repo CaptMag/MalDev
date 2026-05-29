@@ -146,6 +146,11 @@ As of writing this, these are the current programs completed and working:
 - PE Injection
     - [Portable Executable Injection](https://github.com/CaptMag/MalDev/tree/main/PE%20Injection/PE_Injection)
     - [Module Overloading](https://github.com/CaptMag/MalDev/tree/main/PE%20Injection/ModuleOverloading)
+
+- Privilege Escalation
+    - [Token Manipulation](https://github.com/CaptMag/MalDev/tree/main/Privilege%20Escalation/Token%20Manipulation)
+    - [PPID Privilege Escalation](https://github.com/CaptMag/MalDev/tree/main/Privilege%20Escalation/PPID)
+
  
 ## Errors
 
