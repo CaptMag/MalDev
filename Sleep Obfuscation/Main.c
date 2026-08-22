@@ -1,15 +1,13 @@
-#include "Aes.h"
-#include "box.h"
+#include "SleepObfuscation.h"
 
 int main()
 {
 
-	LARGE_INTEGER SleepTime;
-	SleepTime.QuadPart = -(4 * 1000 * 10000LL);
+	do
+	{
+		RC4SleepObfuscation(4 * 1000);
+	} while (TRUE);
 
-	SleepObfusc(&SleepTime);
-
-	OKAY("Done!");
 	return 0;
 
 }
