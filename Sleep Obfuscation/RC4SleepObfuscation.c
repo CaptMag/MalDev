@@ -1,26 +1,27 @@
 #include "SleepObfuscation.h"
 
+// Refrence: Ekko
+
 VOID RC4SleepObfuscation
 (
 	_In_ DWORD SleepTime
 )
 {
 
-	CONTEXT ThreadContext = { 0 };
+	CONTEXT ThreadContext		= { 0 };
+	CONTEXT ROP[6]				= { 0 };
 
-	CONTEXT ROP[6] = { 0 };
+	HANDLE	TimerHandle			= NULL;
+	HANDLE	QueueHandle			= NULL;
+	HANDLE	EventHandle			= NULL;
 
-	HANDLE TimerHandle = NULL;
-	HANDLE QueueHandle = NULL;
-	HANDLE EventHandle = NULL;
+	DWORD	ImageSize			= 0;
+	DWORD	OldProtection		= 0;
+	DWORD	Time				= 0;
 
-	DWORD ImageSize = 0;
-	DWORD OldProtection = 0;
-	DWORD Time = 0;
-
-	PVOID ImageBase = NULL;
-	PVOID NtContinue = NULL;
-	PVOID SystemFunction032 = NULL;
+	PVOID	ImageBase			= NULL;
+	PVOID	NtContinue			= NULL;
+	PVOID	SystemFunction032	= NULL;
 
 	USTRING DataBuf = { 0 };
 	USTRING KeyBuf = { 0 };

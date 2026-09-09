@@ -10,7 +10,7 @@ BOOL CreateSuspendedProcess
 )
 {
 
-	STARTUPINFOW si = { 0 };
+	STARTUPINFOW		si = { 0 };
 	PROCESS_INFORMATION pi = { 0 };
 
 	RtlSecureZeroMemory(&si, sizeof(STARTUPINFOW));
@@ -45,10 +45,10 @@ BOOL ReadTargetFileW
 )
 {
 
-	HANDLE	hFile = NULL;
-	BOOL	State = TRUE;
+	HANDLE	hFile				= NULL;
+	BOOL	State				= TRUE;
 	DWORD	lpNumberOfBytesRead = 0;
-	DWORD	NumberOfBytesRead = 0;
+	DWORD	NumberOfBytesRead	= 0;
 
 	if (!PeName || !lpBuffer)
 		return FALSE;
@@ -228,20 +228,20 @@ BOOL PerformHollowExecution
 )
 {
 
-	PIMAGE_NT_HEADERS64 pImageNtHeader = NULL;
-	PIMAGE_SECTION_HEADER pImageSectionHeader = NULL;
-	PIMAGE_DATA_DIRECTORY pEntryBaseRelocDataDir = NULL;
+	PIMAGE_NT_HEADERS64		pImageNtHeader			= NULL;
+	PIMAGE_SECTION_HEADER	pImageSectionHeader		= NULL;
+	PIMAGE_DATA_DIRECTORY	pEntryBaseRelocDataDir	= NULL;
 
-	BOOL State = TRUE;
-	DWORD_PTR Delta = 0;
-	DWORD OldProtection = 0;
-	DWORD RelocationOffset = 0;
-	DWORD RelocRva = 0;
+	BOOL					State					= TRUE;
+	DWORD_PTR				Delta					= 0;
+	DWORD					OldProtection			= 0;
+	DWORD					RelocationOffset		= 0;
+	DWORD					RelocRva				= 0;
 
-	SIZE_T NumberOfBytesWritten = 0;
-	PVOID PayloadBuffer = NULL;
-	PVOID SectionBaseAddress = NULL;
-	PVOID SectionBuffer = NULL;
+	SIZE_T					NumberOfBytesWritten	= 0;
+	PVOID					PayloadBuffer			= NULL;
+	PVOID					SectionBaseAddress		= NULL;
+	PVOID					SectionBuffer			= NULL;
 
 	CONTEXT ThreadContext = { 0 };
 	RtlSecureZeroMemory(&ThreadContext, sizeof(CONTEXT));

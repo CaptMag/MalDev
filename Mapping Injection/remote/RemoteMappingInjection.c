@@ -40,11 +40,11 @@ BOOL RemoteMappingInjection
 )
 {
 
-	BOOL State = TRUE;
-	HANDLE FileHandle = NULL;
-	HANDLE ThreadHandle = NULL;
-	PVOID LocalAddress = NULL;
-	PVOID RemoteAddress = NULL;
+	BOOL	State			= TRUE;
+	HANDLE	FileHandle		= NULL;
+	HANDLE	ThreadHandle	= NULL;
+	PVOID	LocalAddress	= NULL;
+	PVOID	RemoteAddress	= NULL;
 
 	if (!(FileHandle = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_EXECUTE_READWRITE, 0, PayloadSize, NULL)) || FileHandle == INVALID_HANDLE_VALUE)
 	{
@@ -91,16 +91,16 @@ BOOL RemoteMappingInjection
 
 _END_FUNC:
 
-	if (ProcessHandle)
+	if (ProcessHandle != NULL)
 		CloseHandle(ProcessHandle);
 
-	if (ThreadHandle)
+	if (ThreadHandle != NULL)
 		CloseHandle(ThreadHandle);
 
-	if (LocalAddress)
+	if (LocalAddress != NULL)
 		UnmapViewOfFile(LocalAddress);
 
-	if (RemoteAddress)
+	if (RemoteAddress != NULL)
 		UnmapViewOfFile(RemoteAddress);
 
 	return State;

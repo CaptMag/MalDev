@@ -15,7 +15,7 @@ BOOL RunViaApcInjection
 )
 {
 
-	BOOL State = FALSE;
+	BOOL State			= FALSE;
 	PVOID PayloadBuffer = NULL;
 	DWORD OldProtection = 0;
 
@@ -69,7 +69,7 @@ BOOL RunViaApcInjection
 
 _END_FUNC:
 
-	if (ThreadHandle)
+	if (ThreadHandle != NULL)
 		CloseHandle(ThreadHandle);
 
 	if (PayloadBuffer)

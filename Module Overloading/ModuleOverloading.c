@@ -274,12 +274,13 @@ BOOL MapDll
 )
 {
 
-	PIMAGE_NT_HEADERS64 pImageNtHeader = NULL;
-	NTSTATUS Status = STATUS_SUCCESS;
-	HANDLE FileHandle = NULL;
-	HANDLE SectionHandle = NULL;
-	PVOID DllBaseAddress = NULL;
-	SIZE_T ViewSize = 0;
+	NTSTATUS			Status			= STATUS_SUCCESS;
+
+	PIMAGE_NT_HEADERS64 pImageNtHeader	= NULL;
+	HANDLE				FileHandle		= NULL;
+	HANDLE				SectionHandle	= NULL;
+	PVOID				DllBaseAddress	= NULL;
+	SIZE_T				ViewSize		= 0;
 
 	if (!(FileHandle = CreateFileW(DllFileName, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) || FileHandle == INVALID_HANDLE_VALUE)
 	{
@@ -422,14 +423,6 @@ BOOL DllHollowExecution
 		return FALSE;
 
 	INFO("[0x%p] Entry Point", EntryPoint);
-
-//#ifdef DLL
-//	EntryDllMain = (fnDllMain)EntryPoint;
-//	return EntryDllMain((HINSTANCE)DllBaseAddress, DLL_PROCESS_ATTACH, NULL);
-//#else
-//	EntryMain = (MAIN)EntryPoint;
-//	return EntryMain();
-//#endif
 
 	EntryDllMain = (fnDllMain)EntryPoint;
 	return EntryDllMain((HINSTANCE)DllBaseAddress, DLL_PROCESS_ATTACH, NULL);

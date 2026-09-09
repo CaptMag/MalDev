@@ -7,10 +7,10 @@ BOOL LocalMappingInjection
 )
 {
 
-	BOOL State = TRUE;
-	HANDLE FileHandle = NULL;
-	HANDLE ThreadHandle = NULL;
-	PVOID LocalAddress = NULL;
+	BOOL	State			= TRUE;
+	HANDLE	FileHandle		= NULL;
+	HANDLE	ThreadHandle	= NULL;
+	PVOID	LocalAddress	= NULL;
 
 	if (!(FileHandle = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_EXECUTE_READWRITE, 0, PayloadSize, NULL)) || FileHandle == INVALID_HANDLE_VALUE)
 	{
@@ -48,8 +48,11 @@ BOOL LocalMappingInjection
 
 _END_FUNC:
 
-	if (ThreadHandle)
+	if (ThreadHandle != NULL)
 		CloseHandle(ThreadHandle);
+
+	if (LocalAddress != NULL)
+		UnmapViewOfFile((LPCVOID)LocalAddress);
 
 	return State;
 
