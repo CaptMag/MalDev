@@ -5,6 +5,7 @@
 #define          NtAllocateVirtualMemory_HASH    0xF783B8EC
 #define          ntdll_dll_HASH                  0x70E61753
 
+#define JMP_OPCODE 0xE9
 #define SEARCH_RANGE 500
 #define DOWN 32
 #define UP -32

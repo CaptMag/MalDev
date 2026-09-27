@@ -86,79 +86,198 @@ PVOID LoadDllModule
 
 }
 
-BOOLEAN FetchSyscalls
+BOOLEAN PatchSyscallHook
 (
-	_In_ PVOID FunctionAddress,
-	_In_ pSyscallInfo DllConfig
+	_In_ PBYTE OriginalByteSequence,
+	_In_ SIZE_T BytesSize,
+	_In_ PVOID FunctionAddress
 )
 {
 
-	for (DWORD x = 0; x < SEARCH_RANGE; x++)
+	DWORD OldProtection = 0;
+
+	// u could use PAGE_EXECUTE_READWRITE, but whatever
+	if (VirtualProtect(FunctionAddress, BytesSize, PAGE_EXECUTE_WRITECOPY, &OldProtection))
 	{
 
-		if (*((PBYTE)FunctionAddress + x * DOWN) == 0x4c
-			&& *((PBYTE)FunctionAddress + 1 + x * DOWN) == 0x8b
-			&& *((PBYTE)FunctionAddress + 2 + x * DOWN) == 0xd1
-			&& *((PBYTE)FunctionAddress + 3 + x * DOWN) == 0xb8
-			&& *((PBYTE)FunctionAddress + 6 + x * DOWN) == 0x00
-			&& *((PBYTE)FunctionAddress + 7 + x * DOWN) == 0x00)
+		memcpy(FunctionAddress, (PVOID)OriginalByteSequence, BytesSize);
+		VirtualProtect(FunctionAddress, BytesSize, OldProtection, &OldProtection);
+		FlushInstructionCache(GetCurrentProcess(), FunctionAddress, BytesSize);
+		INFO("Function Address Patched with Syscall Byte Sequence!");
+		return TRUE;
+
+	}
+	return FALSE;
+
+}
+
+BOOLEAN SearchHooks
+(
+	_In_ pSyscallInfo Syscalls,
+	_In_ PVOID FunctionAddress
+)
+{
+
+	BYTE	OriginalByteSequence[] = { 0x4c, 0x8b, 0xd1, 0xb8 };
+	SIZE_T	BytesSize = sizeof(OriginalByteSequence);
+
+	if (memcmp(FunctionAddress, OriginalByteSequence, BytesSize) != 0) // different sequence, most likely hooked
+	{
+		Syscalls->SyscallHook = TRUE;
+		if (*((UCHAR*)FunctionAddress) == JMP_OPCODE)
+		{
+			// can we try patching it first?
+			if (!PatchSyscallHook(OriginalByteSequence, BytesSize, FunctionAddress))
+			{
+				PRINT_ERROR("PatchSyscallHook");
+				return FALSE;
+			}
+			// didn't work
+			INFO("Performing SSN|Syscall Search");
+			return FALSE;
+		}
+		else if (*((UCHAR*)FunctionAddress) == 0xFF && *((UCHAR*)FunctionAddress + 1) == 0x25) // jmp qword [...]
+		{
+			// can we try patching it first?
+			if (!PatchSyscallHook(OriginalByteSequence, BytesSize, FunctionAddress))
+			{
+				PRINT_ERROR("PatchSyscallHook");
+				return FALSE;
+			}
+			// didn't work
+			INFO("Performing SSN|Syscall Search");
+			return FALSE;
+		}
+
+		// something else failed, idk
+		return FALSE;
+
+	}
+
+	Syscalls->SyscallHook = FALSE;
+	return TRUE;
+
+}
+
+BOOLEAN FetchSyscalls
+(
+	_In_ PVOID FunctionAddress,
+	_In_ pSyscallInfo Syscalls
+)
+{
+
+	// populate it first, ensure that SyscallHook is initialized
+	if (!SearchHooks(Syscalls, FunctionAddress))
+	{
+		PRINT_ERROR("SearchHooks");
+		return FALSE;
+	}
+
+	if (Syscalls->SyscallHook == FALSE)
+	{
+
+		// no need to search for other NtApi's SSN/Syscall address
+		if (*((PBYTE)FunctionAddress) == 0x4c
+			&& *((PBYTE)FunctionAddress + 1) == 0x8b
+			&& *((PBYTE)FunctionAddress + 2) == 0xd1
+			&& *((PBYTE)FunctionAddress + 3) == 0xb8
+			&& *((PBYTE)FunctionAddress + 6) == 0x00
+			&& *((PBYTE)FunctionAddress + 7) == 0x00)
 		{
 
-			BYTE high = *((PBYTE)FunctionAddress + x * DOWN + 5);
-			BYTE low  = *((PBYTE)FunctionAddress + x * DOWN + 4);
+			BYTE high = *((PBYTE)FunctionAddress + 5);
+			BYTE low = *((PBYTE)FunctionAddress + 4);
 
-			DllConfig->SyscallInfo.SyscallNumber = (high << 8) | low + x;
-			PBYTE StubDown = (PBYTE)FunctionAddress + x * DOWN;
+			Syscalls->SyscallInfo.SyscallNumber = (high << 8) | low;
 
 			for (DWORD i = 0; i < 32; i++)
 			{
 
-				if (*((PBYTE)StubDown + i) == 0x0F && *((PBYTE)StubDown + i + 1) == 0x05)
+				if (*((PBYTE)FunctionAddress + i) == 0x0F && *((PBYTE)FunctionAddress + i + 1) == 0x05)
 				{
 
-					DllConfig->SyscallInfo.SyscallInstruction = C_PTR((INT_PTR)StubDown + i);
+					Syscalls->SyscallInfo.SyscallInstruction = C_PTR((INT_PTR)FunctionAddress + i);
 					break;
 
 				}
 
 			}
-			return TRUE;
+
 
 		}
 
-		if (*((PBYTE)FunctionAddress + x * UP) == 0x4c
-			&& *((PBYTE)FunctionAddress + 1 + x * UP) == 0x8b
-			&& *((PBYTE)FunctionAddress + 2 + x * UP) == 0xd1
-			&& *((PBYTE)FunctionAddress + 3 + x * UP) == 0xb8
-			&& *((PBYTE)FunctionAddress + 6 + x * UP) == 0x00
-			&& *((PBYTE)FunctionAddress + 7 + x * UP) == 0x00)
+	}
+	else if (Syscalls->SyscallHook == TRUE)
+	{
+
+		for (DWORD x = 0; x < SEARCH_RANGE; x++)
 		{
 
-			BYTE high = *((PBYTE)FunctionAddress + x * UP + 5);
-			BYTE low  = *((PBYTE)FunctionAddress + x * UP + 4);
-
-			DllConfig->SyscallInfo.SyscallNumber = (high << 8) | low - x;
-			PBYTE StubUp = (PBYTE)FunctionAddress + x * UP;
-
-			for (DWORD i = 0; i < 32; i++)
+			if (*((PBYTE)FunctionAddress + x * DOWN) == 0x4c
+				&& *((PBYTE)FunctionAddress + 1 + x * DOWN) == 0x8b
+				&& *((PBYTE)FunctionAddress + 2 + x * DOWN) == 0xd1
+				&& *((PBYTE)FunctionAddress + 3 + x * DOWN) == 0xb8
+				&& *((PBYTE)FunctionAddress + 6 + x * DOWN) == 0x00
+				&& *((PBYTE)FunctionAddress + 7 + x * DOWN) == 0x00)
 			{
 
-				if (*((PBYTE)StubUp + i) == 0x0F && *((PBYTE)StubUp + i + 1) == 0x05)
+				BYTE high = *((PBYTE)FunctionAddress + 5 * DOWN);
+				BYTE low = *((PBYTE)FunctionAddress + 4 * DOWN);
+
+				Syscalls->SyscallInfo.SyscallNumber = (high << 8) | low;
+				PBYTE StubDown = (PBYTE)FunctionAddress + x * DOWN;
+
+				for (DWORD i = 0; i < 32; i++)
 				{
 
-					DllConfig->SyscallInfo.SyscallInstruction = C_PTR((INT_PTR)StubUp + i);
-					break;
+					if (*((PBYTE)StubDown + i) == 0x0F && *((PBYTE)StubDown + i + 1) == 0x05)
+					{
+
+						Syscalls->SyscallInfo.SyscallInstruction = C_PTR((INT_PTR)StubDown + i);
+						break;
+
+					}
 
 				}
 
 			}
-			return TRUE;
+
+			if (*((PBYTE)FunctionAddress + x * UP) == 0x4c
+				&& *((PBYTE)FunctionAddress + 1 + x * UP) == 0x8b
+				&& *((PBYTE)FunctionAddress + 2 + x * UP) == 0xd1
+				&& *((PBYTE)FunctionAddress + 3 + x * UP) == 0xb8
+				&& *((PBYTE)FunctionAddress + 6 + x * UP) == 0x00
+				&& *((PBYTE)FunctionAddress + 7 + x * UP) == 0x00)
+			{
+
+				BYTE high = *((PBYTE)FunctionAddress + 5 * UP);
+				BYTE low = *((PBYTE)FunctionAddress + 4 * UP);
+
+				Syscalls->SyscallInfo.SyscallNumber = (high << 8) | low;
+				PBYTE StubUp = (PBYTE)FunctionAddress + x * UP;
+
+				for (DWORD i = 0; i < 32; i++)
+				{
+
+					if (*((PBYTE)StubUp + i) == 0x0F && *((PBYTE)StubUp + i + 1) == 0x05)
+					{
+
+						Syscalls->SyscallInfo.SyscallInstruction = C_PTR((INT_PTR)StubUp + i);
+						break;
+
+					}
+
+				}
+
+			}
+			break;
+
 
 		}
 
 	}
 
-	if (DllConfig->SyscallInfo.SyscallNumber == 0)
+	if (Syscalls->SyscallInfo.SyscallNumber == NULL)
 		return FALSE;
 
 	return TRUE;
