@@ -2,57 +2,49 @@
 
 #define NTDLL_PATH L"C:\\Windows\\System32\\Ntdll.dll"
 
-BOOL OpenDllFile
+BOOL MapDllFile
 (
 	_In_	LPCWSTR DllPath,
 	_Out_	LPVOID* lpBuffer
 )
 {
 
-	HANDLE	hFile				= NULL;
-	BOOL	State				= TRUE;
-	DWORD	lpNumberOfBytesRead = 0;
-	DWORD	NumberOfBytesRead	= 0;
+	BOOL	State			= TRUE;
+	HANDLE	FileHandle		= NULL;
+	HANDLE  SectionHandle	= NULL;
 
 	if (!DllPath || !lpBuffer)
 		return FALSE;
 
-	if ((hFile = CreateFileW(DllPath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == NULL)
+	if ((FileHandle = CreateFileW(DllPath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == NULL)
 	{
 		PRINT_ERROR("CreateFileA");
 		State = FALSE; goto _END_FUNC;
 	}
 
-	INFO("[0x%p] Current File Handle", hFile);
+	INFO("[0x%p] Current File Handle", FileHandle);
 
-	if ((NumberOfBytesRead = GetFileSize(hFile, NULL)) == INVALID_FILE_SIZE)
+	if ((SectionHandle = CreateFileMappingW(FileHandle, NULL, (PAGE_READONLY | SEC_IMAGE_NO_EXECUTE), 0, 0, NULL)) == NULL)
 	{
-		PRINT_ERROR("GetFileSize");
+		PRINT_ERROR("CreateFileMappingW");
 		State = FALSE; goto _END_FUNC;
 	}
 
-	INFO("[%ld] Current File Size", NumberOfBytesRead);
+	INFO("[0x%p] Section Handle", SectionHandle);
 
-	if ((*lpBuffer = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, NumberOfBytesRead)) == NULL)
+	if ((*lpBuffer = MapViewOfFile(SectionHandle, FILE_MAP_READ, 0, 0, 0)) == NULL)
 	{
-		PRINT_ERROR("HeapAlloc");
+		PRINT_ERROR("MapViewOfFile");
 		State = FALSE; goto _END_FUNC;
 	}
-
-	INFO("[%ld] Allocated Bytes to Buffer", NumberOfBytesRead);
-
-	if (!ReadFile(hFile, *lpBuffer, NumberOfBytesRead, &lpNumberOfBytesRead, NULL))
-	{
-		PRINT_ERROR("ReadFile");
-		State = FALSE; goto _END_FUNC;
-	}
-
-	OKAY("Successfully Read File!");
 
 _END_FUNC:
 
-	if (hFile)
-		CloseHandle(hFile);
+	if (FileHandle)
+		CloseHandle(FileHandle);
+
+	if (SectionHandle)
+		CloseHandle(SectionHandle);
 
 	return State;
 
@@ -76,7 +68,7 @@ HMODULE GetLocalNtdllHandle(void)
 			InMemoryOrderLinks
 		);
 
-		if (pDataLdr->BaseDllName.Buffer &&_wcsicmp(pDataLdr->BaseDllName.Buffer, L"ntdll.dll") == 0)
+		if (pDataLdr->BaseDllName.Buffer && _wcsicmp(pDataLdr->BaseDllName.Buffer, L"ntdll.dll") == 0)
 			return (HMODULE)pDataLdr->DllBase;
 
 	}
@@ -148,9 +140,9 @@ BOOL ReplaceNtdll
 		if (strcmp(pImageSection[i].Name, ".text") == 0)
 		{
 
-			HookedNtdllTextSection = (PVOID)((ULONG_PTR)Ntdll + pImageSection[i].VirtualAddress);
+			HookedNtdllTextSection = (PVOID)((ULONG_PTR)Ntdll + pImageSection->VirtualAddress);
 
-			UnhookedNtdllTextSection = (PVOID)((ULONG_PTR)UnhookedNtdll + pImageSection[i].VirtualAddress);
+			UnhookedNtdllTextSection = (PVOID)((ULONG_PTR)UnhookedNtdll + pImageSection->VirtualAddress);
 
 			TextSectionSize = pImageSection[i].Misc.VirtualSize;
 			break;
@@ -188,7 +180,7 @@ VOID CheckForHookedNtApi
 	SIZE_T	BytesSize				= sizeof(OriginalByteSequence);
 	PVOID	CleanNtdll				= NULL;
 
-	OpenDllFile(NTDLL_PATH, &CleanNtdll);
+	MapDllFile(NTDLL_PATH, &CleanNtdll);
 
 	if (memcmp(Nt_FunctionAddress, OriginalByteSequence, BytesSize) != 0) // different bytes
 	{
@@ -199,6 +191,7 @@ VOID CheckForHookedNtApi
 	else
 	{
 		INFO("Continuing Execution. Address: 0x%p", Nt_FunctionAddress);
+		ReplaceNtdll(CleanNtdll);
 	}
 
 }

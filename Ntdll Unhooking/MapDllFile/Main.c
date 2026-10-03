@@ -16,10 +16,11 @@ int main(void)
 		return 1;
 	}
 
+	INFO("Checking If NtApi is Hooked...");
+
 	CHAR("To Continue...");
 	getchar();
 
-	INFO("Checking If NtApi is Hooked...");
 	CheckForHookedNtApi(NtProtectVirtualMemoryAddress);
 
 	OKAY("Done!");
