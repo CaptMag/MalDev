@@ -1,4 +1,3 @@
-#pragma once
 #define WIN32_MEAN_AND_LEAN
 #include <Windows.h>
 
@@ -11,11 +10,11 @@
 #define NtCurrentProcess() ((HANDLE)(LONG_PTR)-1)
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
 
-typedef HMODULE		(WINAPI* fnLoadLibraryA)				(LPCSTR lpLibFileName);
-typedef LPVOID		(WINAPI* fnVirtualAlloc)				(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
-typedef BOOL		(WINAPI* fnVirtualProtect)			    (LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect);
-typedef NTSTATUS	(NTAPI*  fnNtFlushInstructionCache)	    (HANDLE hProcess, PVOID BaseAddress, ULONG NumberOfBytesToFlush);
-typedef BOOL		(WINAPI* fnDllMain)					    (HINSTANCE, DWORD, LPVOID);
+typedef HMODULE(WINAPI* fnLoadLibraryA)				(LPCSTR lpLibFileName);
+typedef LPVOID(WINAPI* fnVirtualAlloc)				(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
+typedef BOOL(WINAPI* fnVirtualProtect)			    (LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect);
+typedef NTSTATUS(NTAPI* fnNtFlushInstructionCache)	    (HANDLE hProcess, PVOID BaseAddress, ULONG NumberOfBytesToFlush);
+typedef BOOL(WINAPI* fnDllMain)					    (HINSTANCE, DWORD, LPVOID);
 
 #define          VirtualAlloc_HASH                  0x097BC257
 #define          VirtualProtect_HASH                0xE857500D
@@ -32,40 +31,40 @@ typedef BOOL		(WINAPI* fnDllMain)					    (HINSTANCE, DWORD, LPVOID);
 typedef struct
 {
 
-	struct
-	{
+    struct
+    {
 
-		HMODULE Kernel32;
+        HMODULE Kernel32;
         HMODULE Ntdll;
 
-	} DllModule;
+    } DllModule;
 
-	struct
-	{
+    struct
+    {
 
-		fnVirtualAlloc              pVirtualAlloc;
-		fnVirtualProtect            pVirtualProtect;
-		fnLoadLibraryA              pLoadLibraryA;
-		fnNtFlushInstructionCache   pNtFlushInstructionCache;
+        fnVirtualAlloc              pVirtualAlloc;
+        fnVirtualProtect            pVirtualProtect;
+        fnLoadLibraryA              pLoadLibraryA;
+        fnNtFlushInstructionCache   pNtFlushInstructionCache;
 
-	} Api;
+    } Api;
 
-	struct
-	{
+    struct
+    {
 
-		PIMAGE_NT_HEADERS		pImgNtHdrs;
-		PIMAGE_SECTION_HEADER	pImgSecHdr;
+        PIMAGE_NT_HEADERS		pImgNtHdrs;
+        PIMAGE_SECTION_HEADER	pImgSecHdr;
 
-		PIMAGE_DATA_DIRECTORY	pEntryImportDataDir;
-		PIMAGE_DATA_DIRECTORY	pEntryBaseRelocDataDir;
-		PIMAGE_DATA_DIRECTORY	pEntryExceptionDataDir;
-		PIMAGE_DATA_DIRECTORY	pEntryExportDataDir;
+        PIMAGE_DATA_DIRECTORY	pEntryImportDataDir;
+        PIMAGE_DATA_DIRECTORY	pEntryBaseRelocDataDir;
+        PIMAGE_DATA_DIRECTORY	pEntryExceptionDataDir;
+        PIMAGE_DATA_DIRECTORY	pEntryExportDataDir;
         PIMAGE_DATA_DIRECTORY	pEntryTLSDataDir;
 
 
-	} PeHeaders;
+    } PeHeaders;
 
-} Win32, *pWin32;
+} REF_LDR;
 
 typedef struct BASE_RELOCATION_ENTRY {
     USHORT Offset : 12;
@@ -142,36 +141,41 @@ typedef struct _PEB {
     ULONG                         SessionId;
 } PEB, * PPEB;
 
-PVOID LoadDllModule
+VOID MEMCPY
+(
+    _In_ PVOID	Destination,
+    _In_ PVOID	Source,
+    _In_ SIZE_T Size
+);
+
+HMODULE GetHashedModuleHandle
 (
     _In_ DWORD DllModuleHash
 );
 
-PVOID ResolveHashedFunction
+PVOID ResolveHashedFunctionEx
 (
-    _In_ pWin32 Win32,
-    _In_ PVOID DllModuleBase,
-    _In_ DWORD ApiHash
+    _In_		REF_LDR*    RefLdrApi,
+    _In_		PVOID		ModuleBaseAddress,
+    _In_		DWORD		FunctionHash,
+    _In_opt_	ULONG		FunctionOrdinal
 );
 
-BOOL ResolveIAT
+BOOLEAN ResolveImportAddressTable
 (
-    _In_ PVOID ImageBase,
-    _In_ PIMAGE_DATA_DIRECTORY IatRva,
-    _In_ pWin32 Win32
+    _In_	PVOID		ImageBaseAddress,
+    _In_	REF_LDR*    RefLdrApi
 );
 
-BOOL RelocSections
+BOOLEAN ProcessSectionRelocations
 (
-    _In_ DWORD RVA,
-    _In_ PVOID ImageBase,
-    _In_ DWORD_PTR Delta
+    _In_	DWORD		RVA,
+    _In_	PVOID		ImageBase,
+    _In_	DWORD_PTR	Delta
 );
 
-BOOL ChangeMemoryProtection
+BOOLEAN ChangeMemoryProtection
 (
-    _In_ PVOID TargetBaseAddress,
-    _In_ PIMAGE_NT_HEADERS pImgNt,
-    _In_ pWin32 Win32
+    _In_	REF_LDR*    RefLdrApi,
+    _In_	PVOID		TargetBaseAddress
 );
-

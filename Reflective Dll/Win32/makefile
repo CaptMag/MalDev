@@ -23,7 +23,7 @@ ReflectiveLoader.dll:
 		-nostdlib \
 		-Wl,-e,DllMain \
 		ReflectiveLoader/DllMain.c \
-		ReflectiveLoader/Win32.c \
+		ReflectiveLoader/Utils.c \
 		ReflectiveLoader/ReflectiveLoader.c \
 		-luser32 \
 		-o $@

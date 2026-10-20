@@ -5,7 +5,11 @@ VOID Payload()
 	MessageBoxA(NULL, "Hello From Updated Reflective Loader!", "Reflective Loader", MB_OK | MB_ICONINFORMATION);
 }
 
-BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved) {
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved) 
+{
+
+	UNREFERENCED_PARAMETER(hModule);
+	UNREFERENCED_PARAMETER(lpReserved);
 
 	switch (dwReason)
 	{
